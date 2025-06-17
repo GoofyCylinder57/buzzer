@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jeopardy Buzzer</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/player.js" defer></script>
+</head>
+
+<body>
+  <section id="join">
+    <input type="text" id="playerName" placeholder="Enter your name">
+    <button id="joinButton">Join Game</button>
+  </section>
+
+  <section id="game" style="display: none;">
+    <button id="buzzer" disabled>BUZZ!</button>
+    <section id="connectionsBlock">
+      <h2>Connected Players:</h2>
+      <ul id="connections"></ul>
+    </section>
+  </section>
+</body>
+
+</html>
