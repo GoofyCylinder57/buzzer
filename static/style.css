@@ -93,7 +93,7 @@ button {
 #buzzer {
   height: 25vh;
   width: 25vh;
-  border: 1em inset gray;
+  border: 0.75em inset gray;
   border-radius: 50%;
   background: red;
   color: white;
@@ -102,6 +102,13 @@ button {
   text-shadow: 1px 1px black;
   transition: 500ms linear;
   user-select: none;
+}
+
+#buzzer:disabled {
+  background: rgb(100 0 0);
+  border-color: rgb(75 75 75);
+  filter: blur(2px);
+  cursor: not-allowed;
 }
 
 #buzzer:hover {
