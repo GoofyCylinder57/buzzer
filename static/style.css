@@ -35,21 +35,21 @@ body, html {
   border-bottom: 1px solid;
 }
 
-#connections {
+ol, ul {
   display: flex;
   flex-direction: column;
   align-items: center;
   list-style: none;
 }
 
-#connections li {
+ul li, ol li {
   border-bottom: 1px solid gray;
   padding: 0.25em 0;
   width: 25%;
   text-align: center;
 }
 
-#connections li:last-child {
+ul li:last-child, ol li:last-child {
   border-bottom: none;
 }
 
