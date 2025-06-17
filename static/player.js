@@ -24,6 +24,10 @@ const DOM = {
 /** @type{WebSocket | null} */
 let ws = null;
 
+DOM.join.playerName.onkeydown = (/** @type{KeyboardEvent} */ event) => {
+  if (event.key === "Enter") DOM.join.button.click();
+};
+
 DOM.join.button.onclick = () => {
   const playerName = DOM.join.playerName.value.trim();
   if (!playerName) {
@@ -44,7 +48,7 @@ DOM.buzzer.onclick = () => {
 };
 
 function connectWebSocket(playerName) {
-  ws = new WebSocket(`wss://${location.host}/ws`);
+  ws = new WebSocket(`ws://${location.host}/ws`);
 
   ws.onopen = () => {
     console.info("WebSocket connected!");

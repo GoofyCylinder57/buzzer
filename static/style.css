@@ -1,0 +1,68 @@
+:not(head, head *) {
+  all: unset;
+  display: revert;
+  font-family: sans-serif;
+}
+
+body, html {
+  background-color: white;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#join {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  width: 25vw;
+}
+
+#game {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  width: 25em;
+}
+
+#game h2 {
+  font-weight: bold;
+  text-align: center;
+  border-top: 1px solid;
+  border-bottom: 1px solid;
+}
+
+#connections {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  list-style: none;
+}
+
+#connections li {
+  border-bottom: 1px solid gray;
+  padding: 0.25em 0;
+  width: 25%;
+  text-align: center;
+}
+
+#connections li:last-child {
+  border-bottom: none;
+}
+
+button {
+  cursor: pointer;
+  border: 3px solid;
+  border-radius: 1em;
+  padding: 1em 2em;
+  text-align: center;
+}
+
+input {
+  border: 1px solid black;
+  border-radius: 0.25em;
+  text-align: center;
+}
