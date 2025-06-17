@@ -44,7 +44,7 @@ DOM.buzzer.onclick = () => {
 };
 
 function connectWebSocket(playerName) {
-  ws = new WebSocket(`ws://${location.host}/ws`);
+  ws = new WebSocket(`wss://${location.host}/ws`);
 
   ws.onopen = () => {
     console.info("WebSocket connected!");
