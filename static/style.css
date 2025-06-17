@@ -22,9 +22,13 @@ body, html {
 }
 
 #game {
+  padding-top: 5vh;
   display: flex;
-  flex-direction: column;
+  justify-content: center;
+  align-content: start;
   gap: 1em;
+  flex-direction: column;
+  height: 100vh;
   width: 25em;
 }
 
@@ -40,6 +44,31 @@ ol, ul {
   flex-direction: column;
   align-items: center;
   list-style: none;
+  overflow-y: auto;
+}
+
+:is(:has(h2, ol), :has(h2, ul)) h2 {
+  font-weight: bold;
+}
+
+h1 {
+  font-size: min(10vw, 5em);
+  font-weight: bolder;
+  justify-self: center;
+  align-self: center;
+  text-align: center;
+}
+
+button#reset {
+  justify-self: center;
+  align-self:center;
+  font-size: 3em;
+  padding: 2em 1em;
+  border-radius: 2em;
+  font-weight: bold;
+  text-transform: uppercase;
+  background: rgb(0 0 0 / 0.25);
+  border: 15px black solid;
 }
 
 ul li, ol li {
@@ -61,8 +90,38 @@ button {
   text-align: center;
 }
 
+#buzzer {
+  height: 25vh;
+  width: 25vh;
+  border: 1em inset gray;
+  border-radius: 50%;
+  background: red;
+  color: white;
+  font-weight: bolder;
+  font-size: 3em;
+  text-shadow: 1px 1px black;
+  transition: 500ms linear;
+  user-select: none;
+}
+
+#buzzer:hover {
+  text-shadow: -1px 5px black;
+}
+
+#buzzer:active {
+  border: 1em outset gray;
+}
+
 input {
   border: 1px solid black;
   border-radius: 0.25em;
   text-align: center;
+}
+
+#host {
+  justify-content: start;
+  align-items: start;
+  display: grid;
+  grid-template-rows: 4fr 6fr;
+  grid-template-columns: 5fr 5fr;
 }
