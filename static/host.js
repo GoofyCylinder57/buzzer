@@ -11,7 +11,7 @@ const DOM = {
   connections: document.getElementById("connections"),
 };
 
-const ws = new WebSocket(`ws://${location.host}/ws`);
+const ws = new WebSocket(`wss://${location.host}/ws`);
 
 ws.onopen = () => {
   console.info("WebSocket connected!");
