@@ -30,9 +30,10 @@ ws.onmessage = (event) => {
   console.log("Host received:", message);
 
   switch (message.type) {
-    case "buzzedIn": {
+    case "buzz": {
       const li = document.createElement("li");
-      li.textContent = message.name;
+      li.textContent = message.user.name;
+      li.title = message.user.uuid;
       DOM.buzzedInQueue.appendChild(li);
       break;
     }
@@ -40,7 +41,8 @@ ws.onmessage = (event) => {
       DOM.connections.innerHTML = ``;
       message.players.forEach((player) => {
         const li = document.createElement("li");
-        li.textContent = player;
+        li.textContent = player.name;
+        li.title = player.uuid;
         DOM.connections.appendChild(li);
       });
       break;
@@ -50,7 +52,11 @@ ws.onmessage = (event) => {
 
 DOM.resetButton.onclick = () => {
   if (ws && ws.readyState == WebSocket.OPEN) {
-    ws.send(`{"type":"reset"}`);
+    const uuids = Array.from(DOM.connections.childNodes).map((
+      /** @type{HTMLLIElement} */ conn,
+    ) => conn.title);
+    const data = JSON.stringify({ "type": "unlock", "who": uuids });
+    ws.send(data);
     DOM.buzzedInQueue.innerHTML = ``;
   }
 };

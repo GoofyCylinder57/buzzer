@@ -1,7 +1,24 @@
 import { join as joinPath } from "@std/path";
 
-const players = new Map<WebSocket, string>();
+const players = new Map<WebSocket, Player>();
 const hosts = new Set<WebSocket>();
+
+class Player {
+  name: string;
+  uuid: ReturnType<Crypto["randomUUID"]>;
+
+  constructor(name: string) {
+    this.name = name;
+    this.uuid = crypto.randomUUID();
+  }
+
+  static withUUID(name: string, uuid: string): Player {
+    const self = new Player(name);
+    self.uuid = uuid as ReturnType<Crypto["randomUUID"]>;
+
+    return self;
+  }
+}
 
 function broadcast(message: object) {
   const msg = JSON.stringify(message);
@@ -31,8 +48,8 @@ function broadcastHost(message: object) {
 }
 
 function updatePlayerList() {
-  const names = Array.from(players.values());
-  const data = { type: "playerListUpdate", players: names };
+  const plrs = Array.from(players.values());
+  const data = { type: "playerListUpdate", players: plrs };
   broadcast(data);
   broadcastHost(data);
 }
@@ -60,20 +77,37 @@ function handleWS(socket: WebSocket) {
     console.log("Received WS message:", message);
 
     switch (message.type) {
-      case "join":
-        if (message.name && typeof message.name === "string") {
-          players.set(socket, message.name);
-          hosts.delete(socket);
-          updatePlayerList();
-        }
-        break;
-      case "buzz": {
-        const playerName = players.get(socket);
-        if (playerName) broadcastHost({ type: "buzzedIn", name: playerName });
+      case "join": {
+        if (!message.name || typeof message.name !== "string") break;
+
+        const plr = new Player(message.name);
+        players.set(socket, plr);
+        hosts.delete(socket);
+
+        socket.send(`{"type":"joinResponse", "uuid":"${plr.uuid}"}`);
+        updatePlayerList();
         break;
       }
-      case "reset":
-        broadcast({ type: "buzzerUnlock" });
+      case "buzz": {
+        const player = players.get(socket);
+        if (player) broadcastHost({ type: "buzz", user: player });
+        break;
+      }
+      case "unlock":
+        if (!message.who || !Array.isArray(message.who)) break;
+        message.who.forEach((uuid: string) => {
+          const plr_sock = players.entries().find((plr) => plr[1].uuid === uuid)
+            ?.[0];
+          if (plr_sock) plr_sock.send(`{"type":"unlock"}`);
+        });
+        break;
+      case "lock":
+        if (!message.who || !Array.isArray(message.who)) break;
+        message.who.forEach((uuid: string) => {
+          const plr_sock = players.entries().find((plr) => plr[1].uuid === uuid)
+            ?.[0];
+          if (plr_sock) plr_sock.send(`{"type":"lock"}`);
+        });
         break;
     }
   };

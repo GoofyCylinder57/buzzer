@@ -111,6 +111,12 @@ button {
   cursor: not-allowed;
 }
 
+#uuid-wrapper {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
 #buzzer:hover {
   text-shadow: -1px 5px black;
 }

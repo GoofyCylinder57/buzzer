@@ -8,6 +8,7 @@
     gameSection: HTMLDivElement,
     buzzer: HTMLButtonElement,
     connections: HTMLOListElement,
+    uuid: HTMLSpanElement,
  }}
  */
 const DOM = {
@@ -19,6 +20,7 @@ const DOM = {
   gameSection: document.getElementById("game"),
   buzzer: document.getElementById("buzzer"),
   connections: document.getElementById("connections"),
+  uuid: document.getElementById("uuid"),
 };
 
 /** @type{WebSocket | null} */
@@ -72,12 +74,19 @@ function connectWebSocket(playerName) {
         DOM.connections.innerHTML = ``;
         message.players.forEach((player) => {
           const li = document.createElement("li");
-          li.textContent = player;
+          li.textContent = player.name;
+          li.title = player.uuid;
           DOM.connections.appendChild(li);
         });
         break;
-      case "buzzerUnlock":
+      case "unlock":
         DOM.buzzer.disabled = false;
+        break;
+      case "lock":
+        DOM.buzzer.disabled = true;
+        break;
+      case "joinResponse":
+        DOM.uuid.innerText = message.uuid;
         break;
     }
   };
