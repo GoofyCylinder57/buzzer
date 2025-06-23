@@ -1,0 +1,68 @@
+/* Player Join Section */
+#join {
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
+  width: 25vw;
+}
+
+/* Player Game Section */
+#game {
+  padding-top: 5vh;
+  display: flex;
+  justify-content: center;
+  align-content: start;
+  gap: 1em;
+  flex-direction: column;
+  height: 100vh;
+  width: 25em;
+}
+
+#game h2 {
+  font-weight: bold;
+  text-align: center;
+  border-top: 1px solid;
+  border-bottom: 1px solid;
+}
+
+/* Buzzer Button */
+#buzzer {
+  height: 25vh;
+  width: 25vh;
+  border: 0.75em inset gray;
+  border-radius: 50%;
+  background: red;
+  color: white;
+  font-weight: bolder;
+  font-size: 3em;
+  text-shadow: 1px 1px black;
+  transition: 500ms linear;
+  user-select: none;
+}
+
+#buzzer:disabled {
+  background: rgb(100 0 0);
+  border-color: rgb(75 75 75);
+  filter: blur(2px);
+  cursor: not-allowed;
+}
+
+#buzzer:hover {
+  text-shadow: -1px 5px black;
+}
+
+#buzzer:active {
+  border: 1em outset gray;
+}
+
+/* UUID Display */
+#uuid-wrapper {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+/* Connections Block */
+#connectionsBlock {
+  /* Inherits styles from base.css for h2 and ul */
+}

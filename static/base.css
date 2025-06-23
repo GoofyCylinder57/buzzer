@@ -1,0 +1,146 @@
+/* CSS Reset and Base Styles */
+:not(head, head *) {
+  all: unset;
+  display: revert;
+  font-family: sans-serif;
+}
+
+body, html {
+  background-color: white;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Typography */
+h1 {
+  font-size: min(10vw, 5em);
+  font-weight: bolder;
+  justify-self: center;
+  align-self: center;
+  text-align: center;
+}
+
+h2 {
+  font-weight: bold;
+  text-align: center;
+  border-top: 1px solid;
+  border-bottom: 1px solid;
+}
+
+:is(:has(h2, ol), :has(h2, ul)) h2 {
+  font-weight: bold;
+}
+
+/* Lists */
+ol, ul {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  list-style: none;
+  overflow-y: auto;
+}
+
+ul li, ol li {
+  border-bottom: 1px solid gray;
+  padding: 0.25em 0;
+  width: 25%;
+  text-align: center;
+}
+
+ul li:last-child, ol li:last-child {
+  border-bottom: none;
+}
+
+/* Form Elements */
+button {
+  cursor: pointer;
+  border: 3px solid;
+  border-radius: 1em;
+  padding: 1em 2em;
+  text-align: center;
+}
+
+input {
+  border: 1px solid black;
+  border-radius: 0.25em;
+  text-align: center;
+}
+
+/* Custom Checkbox Styling */
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.9em;
+  gap: 0.5em;
+  user-select: none;
+}
+
+.checkbox-container input[type="checkbox"] {
+  display: none;
+}
+
+.checkmark {
+  height: 20px;
+  width: 20px;
+  background-color: #eee;
+  border: 2px solid #ddd;
+  border-radius: 3px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.checkbox-container:hover .checkmark {
+  background-color: #ccc;
+}
+
+.checkbox-container input:checked ~ .checkmark {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.checkbox-container input:indeterminate ~ .checkmark {
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.checkbox-container input:checked ~ .checkmark:after {
+  display: block;
+}
+
+.checkbox-container input:indeterminate ~ .checkmark:after {
+  display: block;
+  left: 6px;
+  top: 2px;
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 1px;
+}
+
+.checkbox-container .checkmark:after {
+  left: 6px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+
+/* Responsive Design Base */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 2.5em;
+  }
+}
