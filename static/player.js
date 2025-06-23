@@ -27,7 +27,7 @@ const DOM = {
 let ws = null;
 let playerName = "";
 let reconnectAttempts = 0;
-let maxReconnectAttempts = 10;
+const maxReconnectAttempts = 10;
 let reconnectDelay = 1000; // Start with 1 second
 let reconnectTimer = null;
 let isConnected = false;
@@ -166,7 +166,6 @@ function attemptReconnect() {
   }
 
   reconnectAttempts++;
-  const delay = Math.min(reconnectDelay * Math.pow(1.5, reconnectAttempts - 1), 30000);
   
   showConnectionStatus('reconnecting', `Reconnecting... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
   
@@ -174,7 +173,7 @@ function attemptReconnect() {
     if (!isConnected) {
       connectWebSocket();
     }
-  }, delay);
+  }, reconnectDelay);
 }
 
 // Handle page visibility changes to reconnect when tab becomes active

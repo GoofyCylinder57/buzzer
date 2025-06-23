@@ -19,14 +19,13 @@ const DOM = {
 
 let ws = null;
 let reconnectAttempts = 0;
-let maxReconnectAttempts = 10;
+const maxReconnectAttempts = 10;
 let reconnectDelay = 1000; // Start with 1 second
 let reconnectTimer = null;
 let isConnected = false;
 let playerList = [];
-let buzzedPlayers = new Set();
-let playerStates = new Map(); // Track locked/unlocked state for each player
-let selectedPlayers = new Set();
+const buzzedPlayers = new Set();
+const selectedPlayers = new Set();
 
 function showConnectionStatus(status, message) {
   // Remove any existing status indicator
@@ -100,20 +99,18 @@ function togglePlayerLock(uuid, shouldLock) {
     const action = shouldLock ? "lock" : "unlock";
     const data = JSON.stringify({ "type": action, "who": [uuid] });
     ws.send(data);
-    
-    // Update local state
-    playerStates.set(uuid, shouldLock ? 'locked' : 'unlocked');
-    updatePlayerDisplay();
+
+    // No local state update here; server will send updated playerListUpdate
   }
 }
 
 function updatePlayerDisplay() {
   DOM.players.innerHTML = '';
-  
+
   // Sort players: buzzed players first (in order they buzzed), then unbuzzed players
   const buzzedPlayersList = Array.from(buzzedPlayers);
   const unbuzzedPlayers = playerList.filter(player => !buzzedPlayers.has(player.uuid));
-  
+
   // Add buzzed players first
   buzzedPlayersList.forEach((uuid, index) => {
     const player = playerList.find(p => p.uuid === uuid);
@@ -121,12 +118,12 @@ function updatePlayerDisplay() {
       createPlayerElement(player, index + 1);
     }
   });
-  
+
   // Add unbuzzed players
   unbuzzedPlayers.forEach(player => {
     createPlayerElement(player, null);
   });
-  
+
   updateSelectedCount();
 }
 
@@ -134,61 +131,61 @@ function createPlayerElement(player, buzzOrder) {
   const li = document.createElement("li");
   li.className = `player ${buzzOrder ? 'buzzed' : ''}`;
   li.title = player.uuid;
-  
+
   // Checkbox for selection
   const checkboxContainer = document.createElement("label");
   checkboxContainer.className = "checkbox-container";
-  
+
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
   checkbox.checked = selectedPlayers.has(player.uuid);
   checkbox.addEventListener('change', (e) => {
     togglePlayerSelection(player.uuid, e.target.checked);
   });
-  
+
   const checkmark = document.createElement("span");
   checkmark.className = "checkmark";
-  
+
   checkboxContainer.appendChild(checkbox);
   checkboxContainer.appendChild(checkmark);
-  
+
   // Player info section
   const playerInfo = document.createElement("div");
   playerInfo.className = "player-info";
-  
+
   const nameSpan = document.createElement("span");
   nameSpan.className = "player-name";
   nameSpan.textContent = player.name;
-  
+
   playerInfo.appendChild(nameSpan);
-  
+
   if (buzzOrder) {
     const buzzIndicator = document.createElement("span");
     buzzIndicator.className = "buzz-indicator";
     buzzIndicator.textContent = `#${buzzOrder}`;
     playerInfo.appendChild(buzzIndicator);
   }
-  
+
   // Control buttons section
   const controls = document.createElement("div");
   controls.className = "player-controls";
-  
-  const isLocked = playerStates.get(player.uuid) === 'locked';
-  
+
+  const isLocked = player.locked; // Use server state
+
   const lockToggle = document.createElement("button");
   lockToggle.className = `lock-toggle ${isLocked ? 'locked' : 'unlocked'}`;
   lockToggle.textContent = isLocked ? 'Locked' : 'Unlocked';
   lockToggle.addEventListener('click', () => {
     togglePlayerLock(player.uuid, !isLocked);
   });
-  
+
   controls.appendChild(lockToggle);
-  
+
   // Assemble the player element
   li.appendChild(checkboxContainer);
   li.appendChild(playerInfo);
   li.appendChild(controls);
-  
+
   DOM.players.appendChild(li);
 }
 
@@ -237,23 +234,25 @@ function connectWebSocket() {
       }
       case "playerListUpdate": {
         playerList = message.players;
-        
-        // Initialize player states for new players
-        playerList.forEach(player => {
-          if (!playerStates.has(player.uuid)) {
-            playerStates.set(player.uuid, 'unlocked');
-          }
-        });
-        
-        // Clean up states for disconnected players
+
+        // Clean up buzzedPlayers and selectedPlayers for disconnected players
         const currentUuids = new Set(playerList.map(p => p.uuid));
-        for (const uuid of playerStates.keys()) {
+        for (const uuid of buzzedPlayers) {
           if (!currentUuids.has(uuid)) {
-            playerStates.delete(uuid);
+            buzzedPlayers.delete(uuid);
+          }
+        }
+        for (const uuid of selectedPlayers) {
+          if (!currentUuids.has(uuid)) {
             selectedPlayers.delete(uuid);
           }
         }
-        
+
+        // If all players are unlocked, reset the buzz order
+        if (playerList.every(player => !player.locked)) {
+          buzzedPlayers.clear();
+        }
+
         updatePlayerDisplay();
         break;
       }
@@ -272,7 +271,6 @@ function attemptReconnect() {
   }
 
   reconnectAttempts++;
-  const delay = Math.min(reconnectDelay * Math.pow(1.5, reconnectAttempts - 1), 30000);
   
   showConnectionStatus('reconnecting', `Reconnecting... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
   
@@ -280,7 +278,7 @@ function attemptReconnect() {
     if (!isConnected) {
       connectWebSocket();
     }
-  }, delay);
+  }, reconnectDelay);
 }
 
 // Event listeners for bulk actions
@@ -305,13 +303,7 @@ DOM.lockSelected.addEventListener('click', () => {
     const uuids = Array.from(selectedPlayers);
     const data = JSON.stringify({ "type": "lock", "who": uuids });
     ws.send(data);
-    
-    // Update local states
-    uuids.forEach(uuid => {
-      playerStates.set(uuid, 'locked');
-    });
-    
-    updatePlayerDisplay();
+    // No local state update; wait for playerListUpdate
   }
 });
 
@@ -320,14 +312,7 @@ DOM.unlockSelected.addEventListener('click', () => {
     const uuids = Array.from(selectedPlayers);
     const data = JSON.stringify({ "type": "unlock", "who": uuids });
     ws.send(data);
-    
-    // Update local states and clear buzz status
-    uuids.forEach(uuid => {
-      playerStates.set(uuid, 'unlocked');
-      buzzedPlayers.delete(uuid);
-    });
-    
-    updatePlayerDisplay();
+    // No local state update; wait for playerListUpdate
   }
 });
 
@@ -342,12 +327,12 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // Handle online/offline events
-window.addEventListener('online', () => {
+self.addEventListener('online', () => {
   if (!isConnected) {
     setTimeout(() => attemptReconnect(), 1000);
   }
 });
 
-window.addEventListener('offline', () => {
+self.addEventListener('offline', () => {
   showConnectionStatus('disconnected', 'You are offline');
 });

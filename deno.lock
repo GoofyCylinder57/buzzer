@@ -1,5 +1,5 @@
 {
-  "version": "4",
+  "version": "5",
   "specifiers": {
     "jsr:@std/path@^1.1.0": "1.1.0"
   },
@@ -10,6 +10,7 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@std/crypto@^1.0.5",
       "jsr:@std/path@^1.1.0"
     ]
   }

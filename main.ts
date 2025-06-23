@@ -6,6 +6,7 @@ const hosts = new Set<WebSocket>();
 class Player {
   name: string;
   uuid: ReturnType<Crypto["randomUUID"]>;
+  locked: boolean = false; // Add locked state
 
   constructor(name: string) {
     this.name = name;
@@ -48,7 +49,11 @@ function broadcastHost(message: object) {
 }
 
 function updatePlayerList() {
-  const plrs = Array.from(players.values());
+  const plrs = Array.from(players.values()).map((p) => ({
+    name: p.name,
+    uuid: p.uuid,
+    locked: p.locked, // Include locked state
+  }));
   const data = { type: "playerListUpdate", players: plrs };
   broadcast(data);
   broadcastHost(data);
@@ -90,24 +95,34 @@ function handleWS(socket: WebSocket) {
       }
       case "buzz": {
         const player = players.get(socket);
-        if (player) broadcastHost({ type: "buzz", user: player });
+        if (player) {
+          player.locked = true; // Lock on buzz
+          broadcastHost({ type: "buzz", user: { name: player.name, uuid: player.uuid } });
+          updatePlayerList();
+        }
         break;
       }
       case "unlock":
         if (!message.who || !Array.isArray(message.who)) break;
         message.who.forEach((uuid: string) => {
+          const plr = Array.from(players.values()).find((p) => p.uuid === uuid);
+          if (plr) plr.locked = false;
           const plr_sock = players.entries().find((plr) => plr[1].uuid === uuid)
             ?.[0];
           if (plr_sock) plr_sock.send(`{"type":"unlock"}`);
         });
+        updatePlayerList();
         break;
       case "lock":
         if (!message.who || !Array.isArray(message.who)) break;
         message.who.forEach((uuid: string) => {
+          const plr = Array.from(players.values()).find((p) => p.uuid === uuid);
+          if (plr) plr.locked = true;
           const plr_sock = players.entries().find((plr) => plr[1].uuid === uuid)
             ?.[0];
           if (plr_sock) plr_sock.send(`{"type":"lock"}`);
         });
+        updatePlayerList();
         break;
     }
   };

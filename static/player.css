@@ -27,8 +27,7 @@
 
 /* Buzzer Button */
 #buzzer {
-  height: 25vh;
-  width: 25vh;
+  padding: 25vh;
   border: 0.75em inset gray;
   border-radius: 50%;
   background: red;

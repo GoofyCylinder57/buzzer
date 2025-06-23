@@ -54,17 +54,31 @@ body {
 
 .bulk-action-btn {
   padding: 0.5em 1em;
-  border: 2px solid #007bff;
-  background: #007bff;
+  border: 2px solid;
   color: white;
   border-radius: 0.5em;
   font-weight: bold;
   transition: all 0.2s ease;
 }
 
-.bulk-action-btn:hover:not(:disabled) {
-  background: #0056b3;
-  border-color: #0056b3;
+.bulk-action-btn#lockSelected {
+  background: #dc3545;
+  border-color: #dc3545;
+}
+
+.bulk-action-btn#unlockSelected {
+  background: #28a745;
+  border-color: #28a745;
+}
+
+.bulk-action-btn#lockSelected:hover:not(:disabled) {
+  background: #c82333;
+  border-color: #c82333;
+}
+
+.bulk-action-btn#unlockSelected:hover:not(:disabled) {
+  background: #28a745;
+  border-color: #28a745;
 }
 
 .bulk-action-btn:disabled {
