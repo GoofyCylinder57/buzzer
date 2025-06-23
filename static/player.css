@@ -28,10 +28,10 @@
 /* Buzzer Button */
 #buzzer {
   padding: 25vh;
-  border: 0.75em inset gray;
+  border: 0.75em solid var(--color-buzzer-border);
   border-radius: 50%;
-  background: red;
-  color: white;
+  background: var(--color-buzzer);
+  color: #fff;
   font-weight: bolder;
   font-size: 3em;
   text-shadow: 1px 1px black;
@@ -40,18 +40,21 @@
 }
 
 #buzzer:disabled {
-  background: rgb(100 0 0);
-  border-color: rgb(75 75 75);
+  background: var(--color-buzzer-disabled);
+  border-color: var(--color-buzzer-border-disabled);
   filter: blur(2px);
   cursor: not-allowed;
 }
 
-#buzzer:hover {
+#buzzer:hover:not(:disabled) {
   text-shadow: -1px 5px black;
+  filter: brightness(1.15) drop-shadow(0 0 10px var(--color-buzzer));
+  box-shadow: 0 0 20px 2px var(--color-buzzer-border);
+  cursor: pointer;
 }
 
 #buzzer:active {
-  border: 1em outset gray;
+  border: 1em outset var(--color-buzzer-border);
 }
 
 /* UUID Display */
@@ -64,4 +67,9 @@
 /* Connections Block */
 #connectionsBlock {
   /* Inherits styles from base.css for h2 and ul */
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text);
 }

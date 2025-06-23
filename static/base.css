@@ -1,4 +1,55 @@
 /* CSS Reset and Base Styles */
+:root {
+  --color-background: #fff;
+  --color-primary: #007bff;
+  --color-primary-dark: #0056b3;
+  --color-secondary: #6c757d;
+  --color-success: #28a745;
+  --color-success-dark: #218838;
+  --color-danger: #dc3545;
+  --color-danger-dark: #c82333;
+  --color-warning: #ff9800;
+  --color-warning-bg: #ffeb3b;
+  --color-gray: #eee;
+  --color-gray-dark: #ddd;
+  --color-border: #ddd;
+  --color-text: #000;
+  --color-white: #fff;
+  --color-disabled: #6c757d;
+  --color-disabled-bg: #f5f5f5;
+  --color-buzzer: red;
+  --color-buzzer-disabled: rgb(100 0 0);
+  --color-buzzer-border: gray;
+  --color-buzzer-border-disabled: rgb(75 75 75);
+}
+
+/* Dark theme variables */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #181a1b;
+    --color-primary: #3399ff;
+    --color-primary-dark: #1976d2;
+    --color-secondary: #b0b3b8;
+    --color-success: #43a047;
+    --color-success-dark: #2e7031;
+    --color-danger: #e57373;
+    --color-danger-dark: #b71c1c;
+    --color-warning: #ffa726;
+    --color-warning-bg: #4e3c00;
+    --color-gray: #23272b;
+    --color-gray-dark: #181a1b;
+    --color-border: #333;
+    --color-text: #f5f5f5;
+    --color-white: #222;
+    --color-disabled: #444;
+    --color-disabled-bg: #23272b;
+    --color-buzzer: #b71c1c;
+    --color-buzzer-disabled: #3a0a0a;
+    --color-buzzer-border: rgb(78, 78, 78);
+    --color-buzzer-border-disabled: rgb(34, 34, 34);
+  }
+}
+
 :not(head, head *) {
   all: unset;
   display: revert;
@@ -7,7 +58,8 @@
 }
 
 body, html {
-  background-color: white;
+  background-color: var(--color-background);
+  color: var(--color-text);
   height: 100vh;
   width: 100vw;
   display: flex;
@@ -66,7 +118,8 @@ button {
 }
 
 input {
-  border: 1px solid black;
+  border: 1px solid var(--color-border);
+  padding: 0.5em;
   border-radius: 0.25em;
   text-align: center;
 }

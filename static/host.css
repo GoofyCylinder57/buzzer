@@ -9,6 +9,8 @@ body {
   padding: 2em;
   max-width: 1200px;
   margin: 0 auto;
+  background: var(--color-background);
+  color: var(--color-text);
 }
 
 /* Players Block */
@@ -34,8 +36,8 @@ body {
   justify-content: space-between;
   align-items: center;
   padding: 1em;
-  background: #f5f5f5;
-  border: 1px solid #ddd;
+  background: var(--color-disabled-bg);
+  border: 1px solid var(--color-border);
   border-radius: 0.5em;
   gap: 1em;
   flex-wrap: wrap;
@@ -62,30 +64,28 @@ body {
 }
 
 .bulk-action-btn#lockSelected {
-  background: #dc3545;
-  border-color: #dc3545;
+  background: var(--color-danger);
+  border-color: var(--color-danger);
 }
 
 .bulk-action-btn#unlockSelected {
-  background: #28a745;
-  border-color: #28a745;
+  background: var(--color-success);
+  border-color: var(--color-success);
 }
 
 .bulk-action-btn#lockSelected:hover:not(:disabled) {
-  background: #c82333;
-  border-color: #c82333;
+  background: var(--color-danger-dark);
+  border-color: var(--color-danger-dark);
 }
 
 .bulk-action-btn#unlockSelected:hover:not(:disabled) {
-  background: #28a745;
-  border-color: #28a745;
+  background: var(--color-success-dark);
+  border-color: var(--color-success-dark);
 }
 
 .bulk-action-btn:disabled {
-  background: #6c757d;
-  border-color: #6c757d;
-  cursor: not-allowed;
-  opacity: 0.6;
+  background: var(--color-disabled);
+  border-color: var(--color-disabled);
 }
 
 /* Player List */
@@ -100,9 +100,10 @@ body {
   display: flex;
   align-items: center;
   padding: 0.75em;
-  border-bottom: 1px solid #ddd;
+  border-bottom: 1px solid var(--color-border);
   width: 100%;
-  background: white;
+  background: var(--color-background);
+  color: var(--color-text);
   transition: background-color 0.3s ease;
   gap: 1em;
 }
@@ -112,8 +113,8 @@ body {
 }
 
 .player.buzzed {
-  background: #ffeb3b;
-  border-left: 4px solid #ff9800;
+  background: var(--color-warning-bg);
+  border-left: 4px solid var(--color-warning);
 }
 
 .player-info {
@@ -129,8 +130,8 @@ body {
 }
 
 .buzz-indicator {
-  background: #ff9800;
-  color: white;
+  background: var(--color-warning);
+  color: var(--color-white);
   padding: 0.25em 0.5em;
   border-radius: 50%;
   font-size: 0.8em;
@@ -155,25 +156,25 @@ body {
 }
 
 .lock-toggle.locked {
-  background: #dc3545;
-  border-color: #dc3545;
-  color: white;
+  background: var(--color-danger);
+  border-color: var(--color-danger);
+  color: #fff;
 }
 
 .lock-toggle.locked:hover {
-  background: #c82333;
-  border-color: #c82333;
+  background: var(--color-danger-dark);
+  border-color: var(--color-danger-dark);
 }
 
 .lock-toggle.unlocked {
-  background: #28a745;
-  border-color: #28a745;
-  color: white;
+  background: var(--color-success);
+  border-color: var(--color-success);
+  color: #fff;
 }
 
 .lock-toggle.unlocked:hover {
-  background: #218838;
-  border-color: #218838;
+  background: var(--color-success-dark);
+  border-color: var(--color-success-dark);
 }
 
 /* Host Responsive Design */

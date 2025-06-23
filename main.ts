@@ -143,6 +143,12 @@ async function handler(req: Request): Promise<Response> {
     return new Response(fileContent, {
       headers: { "Content-Type": "text/html" },
     });
+  } else if (url.pathname === "/favicon.ico") {
+    const filePath = joinPath(Deno.cwd(), "static", "favicon.ico");
+    const fileContent = await Deno.readFile(filePath);
+    return new Response(fileContent, {
+      headers: { "Content-Type": "image/x-icon" },
+    });
   } else if (url.pathname.startsWith("/static/")) {
     const filePath = joinPath(Deno.cwd(), url.pathname);
     try {
