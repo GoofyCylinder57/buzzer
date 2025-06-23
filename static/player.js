@@ -8,7 +8,13 @@
     gameSection: HTMLDivElement,
     buzzer: HTMLButtonElement,
     connections: HTMLOListElement,
-    uuid: HTMLSpanElement,
+    info: {
+      uuid: HTMLSpanElement,
+      audio: {
+        check: HTMLInputElement,
+        el: HTMLAudioElement,
+      },
+    },
  }}
  */
 const DOM = {
@@ -20,7 +26,13 @@ const DOM = {
   gameSection: document.getElementById("game"),
   buzzer: document.getElementById("buzzer"),
   connections: document.getElementById("connections"),
-  uuid: document.getElementById("uuid"),
+  info: {
+    uuid: document.getElementById("uuid"),
+    audio: {
+      check: document.getElementById("audio-check"),
+      el: document.getElementById("buzzer-sound"),
+    },
+  },
 };
 
 /** @type{WebSocket | null} */
@@ -51,6 +63,13 @@ DOM.join.button.onclick = () => {
 
 DOM.buzzer.onclick = () => {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
+  const checked = DOM.info.audio.check.checked;
+  const enabled = !DOM.buzzer.disabled;
+
+  if (checked && enabled) {
+    DOM.info.audio.el.fastSeek(0);
+    DOM.info.audio.el.play();
+  }
 
   ws.send(`{"type":"buzz"}`);
   DOM.buzzer.disabled = true;
@@ -75,15 +94,18 @@ function showConnectionStatus(status, message) {
     border-radius: 5px;
     font-weight: bold;
     z-index: 1000;
-    ${status === 'connected' ? 'background: #4CAF50; color: white;' : 
-      status === 'disconnected' ? 'background: #f44336; color: white;' : 
-      'background: #ff9800; color: white;'}
+    ${status === "connected"
+      ? "background: #4CAF50; color: white;"
+      : status === "disconnected"
+        ? "background: #f44336; color: white;"
+        : "background: #ff9800; color: white;"
+    }
   `;
   statusDiv.textContent = message;
   document.body.appendChild(statusDiv);
 
   // Auto-hide success messages
-  if (status === 'connected') {
+  if (status === "connected") {
     setTimeout(() => {
       if (statusDiv.parentNode) {
         statusDiv.remove();
@@ -93,11 +115,14 @@ function showConnectionStatus(status, message) {
 }
 
 function connectWebSocket() {
-  if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+  if (
+    ws &&
+    (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)
+  ) {
     return;
   }
 
-  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const protocol = location.protocol === "https:" ? "wss:" : "ws:";
   ws = new WebSocket(`${protocol}//${location.host}/ws`);
 
   ws.onopen = () => {
@@ -105,9 +130,9 @@ function connectWebSocket() {
     isConnected = true;
     reconnectAttempts = 0;
     reconnectDelay = 1000;
-    
-    showConnectionStatus('connected', 'Connected to game!');
-    
+
+    showConnectionStatus("connected", "Connected to game!");
+
     // Rejoin the game
     ws.send(JSON.stringify({ type: "join", name: playerName }));
   };
@@ -120,10 +145,13 @@ function connectWebSocket() {
   ws.onclose = (event) => {
     console.warn("WebSocket disconnected!", event.code, event.reason);
     isConnected = false;
-    
+
     // Don't show disconnected message if this was intentional
     if (event.code !== 1000) {
-      showConnectionStatus('disconnected', 'Connection lost. Attempting to reconnect...');
+      showConnectionStatus(
+        "disconnected",
+        "Connection lost. Attempting to reconnect...",
+      );
       attemptReconnect();
     }
   };
@@ -149,7 +177,7 @@ function connectWebSocket() {
         DOM.buzzer.disabled = true;
         break;
       case "joinResponse":
-        DOM.uuid.innerText = message.uuid;
+        DOM.info.uuid.innerText = message.uuid;
         break;
     }
   };
@@ -161,14 +189,20 @@ function attemptReconnect() {
   }
 
   if (reconnectAttempts >= maxReconnectAttempts) {
-    showConnectionStatus('disconnected', 'Failed to reconnect. Please refresh the page.');
+    showConnectionStatus(
+      "disconnected",
+      "Failed to reconnect. Please refresh the page.",
+    );
     return;
   }
 
   reconnectAttempts++;
-  
-  showConnectionStatus('reconnecting', `Reconnecting... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
-  
+
+  showConnectionStatus(
+    "reconnecting",
+    `Reconnecting... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`,
+  );
+
   reconnectTimer = setTimeout(() => {
     if (!isConnected) {
       connectWebSocket();
@@ -177,19 +211,19 @@ function attemptReconnect() {
 }
 
 // Handle page visibility changes to reconnect when tab becomes active
-document.addEventListener('visibilitychange', () => {
+document.addEventListener("visibilitychange", () => {
   if (!document.hidden && !isConnected && playerName) {
     attemptReconnect();
   }
 });
 
 // Handle online/offline events
-window.addEventListener('online', () => {
+self.addEventListener("online", () => {
   if (!isConnected && playerName) {
     setTimeout(() => attemptReconnect(), 1000);
   }
 });
 
-window.addEventListener('offline', () => {
-  showConnectionStatus('disconnected', 'You are offline');
+self.addEventListener("offline", () => {
+  showConnectionStatus("disconnected", "You are offline");
 });

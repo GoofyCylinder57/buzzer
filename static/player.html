@@ -18,7 +18,17 @@
   </section>
 
   <section id="game" style="display: none;">
-    <span id="uuid-wrapper">Your UUID is: <span id="uuid"></span></span>
+    <div id="info-wrapper">
+      <span id="uuid-wrapper">Your UUID is: <span id="uuid"></span></span>
+      <div id="audio-wrapper">
+        <audio src="/static/buzz.wav" id="buzzer-sound"></audio>
+        <label class="checkbox-container">
+          <input type="checkbox" id="audio-check" checked>
+          <span class="checkmark"></span>
+          Enable Audio
+        </label>
+      </div>
+    </div>
     <button id="buzzer">BUZZ!</button>
     <section id="connectionsBlock">
       <h2>Connected Players</h2>
