@@ -27,7 +27,7 @@
 
 /* Buzzer Button */
 #buzzer {
-  padding: min(25vh, 85vw);
+  padding: min(25vh, 20vw);
   border: 0.75em solid var(--color-buzzer-border);
   border-radius: 50%;
   background: var(--color-buzzer);
