@@ -10,7 +10,6 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@std/crypto@^1.0.5",
       "jsr:@std/path@^1.1.0"
     ]
   }
