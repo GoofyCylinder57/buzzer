@@ -59,18 +59,6 @@ h1 {
   text-align: center;
 }
 
-button#reset {
-  justify-self: center;
-  align-self:center;
-  font-size: 3em;
-  padding: 2em 1em;
-  border-radius: 2em;
-  font-weight: bold;
-  text-transform: uppercase;
-  background: rgb(0 0 0 / 0.25);
-  border: 15px black solid;
-}
-
 ul li, ol li {
   border-bottom: 1px solid gray;
   padding: 0.25em 0;
@@ -135,16 +123,19 @@ input {
   justify-content: start;
   align-items: start;
   display: grid;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto 1fr;
   grid-template-columns: 1fr;
   gap: 2em;
   padding: 2em;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 #playersBlock {
   width: 100%;
-  max-width: 600px;
-  justify-self: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1em;
 }
 
 #playersBlock h2 {
@@ -152,24 +143,141 @@ input {
   text-align: center;
   border-top: 1px solid;
   border-bottom: 1px solid;
-  margin-bottom: 1em;
+  margin: 0;
+  padding: 0.5em 0;
 }
 
+/* Bulk Actions Toolbar */
+#bulkActionsToolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1em;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 0.5em;
+  gap: 1em;
+  flex-wrap: wrap;
+}
+
+.bulk-selection {
+  display: flex;
+  align-items: center;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 0.5em;
+  flex-wrap: wrap;
+}
+
+.bulk-action-btn {
+  padding: 0.5em 1em;
+  border: 2px solid #007bff;
+  background: #007bff;
+  color: white;
+  border-radius: 0.5em;
+  font-weight: bold;
+  transition: all 0.2s ease;
+}
+
+.bulk-action-btn:hover:not(:disabled) {
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+.bulk-action-btn:disabled {
+  background: #6c757d;
+  border-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Custom Checkbox Styling */
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 0.9em;
+  gap: 0.5em;
+  user-select: none;
+}
+
+.checkbox-container input[type="checkbox"] {
+  display: none;
+}
+
+.checkmark {
+  height: 20px;
+  width: 20px;
+  background-color: #eee;
+  border: 2px solid #ddd;
+  border-radius: 3px;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.checkbox-container:hover .checkmark {
+  background-color: #ccc;
+}
+
+.checkbox-container input:checked ~ .checkmark {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.checkbox-container input:indeterminate ~ .checkmark {
+  background-color: #6c757d;
+  border-color: #6c757d;
+}
+
+.checkmark:after {
+  content: "";
+  position: absolute;
+  display: none;
+}
+
+.checkbox-container input:checked ~ .checkmark:after {
+  display: block;
+}
+
+.checkbox-container input:indeterminate ~ .checkmark:after {
+  display: block;
+  left: 6px;
+  top: 2px;
+  width: 6px;
+  height: 6px;
+  background: white;
+  border-radius: 1px;
+}
+
+.checkbox-container .checkmark:after {
+  left: 6px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 3px 3px 0;
+  transform: rotate(45deg);
+}
+
+/* Player List */
 #players {
   width: 100%;
   max-height: 60vh;
   overflow-y: auto;
+  align-items: stretch;
 }
 
 .player {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 0.75em 1em;
+  padding: 0.75em;
   border-bottom: 1px solid #ddd;
   width: 100%;
   background: white;
   transition: background-color 0.3s ease;
+  gap: 1em;
 }
 
 .player:last-child {
@@ -179,11 +287,17 @@ input {
 .player.buzzed {
   background: #ffeb3b;
   border-left: 4px solid #ff9800;
-  font-weight: bold;
+}
+
+.player-info {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .player-name {
-  flex: 1;
+  font-weight: 500;
   text-align: left;
 }
 
@@ -196,4 +310,92 @@ input {
   font-weight: bold;
   min-width: 1.5em;
   text-align: center;
+}
+
+.player-controls {
+  display: flex;
+  gap: 0.5em;
+}
+
+.lock-toggle {
+  padding: 0.4em 0.8em;
+  border: 2px solid;
+  border-radius: 0.4em;
+  font-size: 0.85em;
+  font-weight: bold;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.lock-toggle.locked {
+  background: #dc3545;
+  border-color: #dc3545;
+  color: white;
+}
+
+.lock-toggle.locked:hover {
+  background: #c82333;
+  border-color: #c82333;
+}
+
+.lock-toggle.unlocked {
+  background: #28a745;
+  border-color: #28a745;
+  color: white;
+}
+
+.lock-toggle.unlocked:hover {
+  background: #218838;
+  border-color: #218838;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  #host {
+    padding: 1em;
+  }
+  
+  #bulkActionsToolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5em;
+  }
+  
+  .bulk-actions {
+    justify-content: center;
+  }
+  
+  .player {
+    flex-wrap: wrap;
+    gap: 0.5em;
+  }
+  
+  .player-controls {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .lock-toggle {
+    flex: 1;
+    max-width: 120px;
+  }
+}
+
+@media (max-width: 480px) {
+  h1 {
+    font-size: 2.5em;
+  }
+  
+  .bulk-action-btn {
+    padding: 0.4em 0.8em;
+    font-size: 0.9em;
+  }
+  
+  .player {
+    padding: 0.5em;
+  }
+  
+  .player-name {
+    font-size: 0.9em;
+  }
 }

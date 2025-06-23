@@ -11,9 +11,30 @@
 
 <body id="host">
   <h1>Host Controls</h1>
-  <button id="reset">Reset Buzzers</button>
+  
   <section id="playersBlock">
     <h2>Players</h2>
+    
+    <!-- Bulk Actions Toolbar -->
+    <div id="bulkActionsToolbar">
+      <div class="bulk-selection">
+        <label class="checkbox-container">
+          <input type="checkbox" id="selectAll">
+          <span class="checkmark"></span>
+          Select All
+        </label>
+      </div>
+      
+      <div class="bulk-actions">
+        <button id="lockSelected" class="bulk-action-btn" disabled>
+          Lock Selected (<span id="selectedCount">0</span>)
+        </button>
+        <button id="unlockSelected" class="bulk-action-btn" disabled>
+          Unlock Selected (<span id="selectedCount2">0</span>)
+        </button>
+      </div>
+    </div>
+    
     <ul id="players"></ul>
   </section>
 </body>
