@@ -135,6 +135,65 @@ input {
   justify-content: start;
   align-items: start;
   display: grid;
-  grid-template-rows: 4fr 6fr;
-  grid-template-columns: 5fr 5fr;
+  grid-template-rows: auto auto 1fr;
+  grid-template-columns: 1fr;
+  gap: 2em;
+  padding: 2em;
+}
+
+#playersBlock {
+  width: 100%;
+  max-width: 600px;
+  justify-self: center;
+}
+
+#playersBlock h2 {
+  font-weight: bold;
+  text-align: center;
+  border-top: 1px solid;
+  border-bottom: 1px solid;
+  margin-bottom: 1em;
+}
+
+#players {
+  width: 100%;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.player {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75em 1em;
+  border-bottom: 1px solid #ddd;
+  width: 100%;
+  background: white;
+  transition: background-color 0.3s ease;
+}
+
+.player:last-child {
+  border-bottom: none;
+}
+
+.player.buzzed {
+  background: #ffeb3b;
+  border-left: 4px solid #ff9800;
+  font-weight: bold;
+}
+
+.player-name {
+  flex: 1;
+  text-align: left;
+}
+
+.buzz-indicator {
+  background: #ff9800;
+  color: white;
+  padding: 0.25em 0.5em;
+  border-radius: 50%;
+  font-size: 0.8em;
+  font-weight: bold;
+  min-width: 1.5em;
+  text-align: center;
 }

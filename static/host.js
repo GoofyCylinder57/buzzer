@@ -1,14 +1,12 @@
 /**
  @type{{
   resetButton: HTMLButtonElement,
-  buzzedInQueue: HTMLUListElement,
-  connections: HTMLOListElement,
+  players: HTMLUListElement,
  }}
  */
 const DOM = {
   resetButton: document.getElementById("reset"),
-  buzzedInQueue: document.getElementById("buzzedInQueue"),
-  connections: document.getElementById("connections"),
+  players: document.getElementById("players"),
 };
 
 let ws = null;
@@ -17,6 +15,8 @@ let maxReconnectAttempts = 10;
 let reconnectDelay = 1000; // Start with 1 second
 let reconnectTimer = null;
 let isConnected = false;
+let playerList = [];
+let buzzedPlayers = new Set();
 
 function showConnectionStatus(status, message) {
   // Remove any existing status indicator
@@ -52,6 +52,50 @@ function showConnectionStatus(status, message) {
       }
     }, 3000);
   }
+}
+
+function updatePlayerDisplay() {
+  DOM.players.innerHTML = '';
+  
+  // Sort players: buzzed players first (in order they buzzed), then unbuzzed players
+  const buzzedPlayersList = Array.from(buzzedPlayers);
+  const unbuzzedPlayers = playerList.filter(player => !buzzedPlayers.has(player.uuid));
+  
+  // Add buzzed players first
+  buzzedPlayersList.forEach((uuid, index) => {
+    const player = playerList.find(p => p.uuid === uuid);
+    if (player) {
+      const li = document.createElement("li");
+      li.className = "player buzzed";
+      li.title = player.uuid;
+      
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "player-name";
+      nameSpan.textContent = player.name;
+      
+      const buzzIndicator = document.createElement("span");
+      buzzIndicator.className = "buzz-indicator";
+      buzzIndicator.textContent = `#${index + 1}`;
+      
+      li.appendChild(nameSpan);
+      li.appendChild(buzzIndicator);
+      DOM.players.appendChild(li);
+    }
+  });
+  
+  // Add unbuzzed players
+  unbuzzedPlayers.forEach(player => {
+    const li = document.createElement("li");
+    li.className = "player";
+    li.title = player.uuid;
+    
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "player-name";
+    nameSpan.textContent = player.name;
+    
+    li.appendChild(nameSpan);
+    DOM.players.appendChild(li);
+  });
 }
 
 function connectWebSocket() {
@@ -93,20 +137,13 @@ function connectWebSocket() {
 
     switch (message.type) {
       case "buzz": {
-        const li = document.createElement("li");
-        li.textContent = message.user.name;
-        li.title = message.user.uuid;
-        DOM.buzzedInQueue.appendChild(li);
+        buzzedPlayers.add(message.user.uuid);
+        updatePlayerDisplay();
         break;
       }
       case "playerListUpdate": {
-        DOM.connections.innerHTML = ``;
-        message.players.forEach((player) => {
-          const li = document.createElement("li");
-          li.textContent = player.name;
-          li.title = player.uuid;
-          DOM.connections.appendChild(li);
-        });
+        playerList = message.players;
+        updatePlayerDisplay();
         break;
       }
     }
@@ -137,12 +174,11 @@ function attemptReconnect() {
 
 DOM.resetButton.onclick = () => {
   if (ws && ws.readyState == WebSocket.OPEN) {
-    const uuids = Array.from(DOM.connections.childNodes).map((
-      /** @type{HTMLLIElement} */ conn,
-    ) => conn.title);
+    const uuids = playerList.map(player => player.uuid);
     const data = JSON.stringify({ "type": "unlock", "who": uuids });
     ws.send(data);
-    DOM.buzzedInQueue.innerHTML = ``;
+    buzzedPlayers.clear();
+    updatePlayerDisplay();
   }
 };
 
