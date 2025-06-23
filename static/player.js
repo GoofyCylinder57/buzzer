@@ -25,21 +25,28 @@ const DOM = {
 
 /** @type{WebSocket | null} */
 let ws = null;
+let playerName = "";
+let reconnectAttempts = 0;
+let maxReconnectAttempts = 10;
+let reconnectDelay = 1000; // Start with 1 second
+let reconnectTimer = null;
+let isConnected = false;
 
 DOM.join.playerName.onkeydown = (/** @type{KeyboardEvent} */ event) => {
   if (event.key === "Enter") DOM.join.button.click();
 };
 
 DOM.join.button.onclick = () => {
-  const playerName = DOM.join.playerName.value.trim();
-  if (!playerName) {
+  const name = DOM.join.playerName.value.trim();
+  if (!name) {
     alert("Please enter your name!");
     return;
   }
 
+  playerName = name;
   DOM.join.section.style.display = "none";
   DOM.gameSection.style.display = "grid";
-  connectWebSocket(playerName);
+  connectWebSocket();
 };
 
 DOM.buzzer.onclick = () => {
@@ -49,20 +56,76 @@ DOM.buzzer.onclick = () => {
   DOM.buzzer.disabled = true;
 };
 
-function connectWebSocket(playerName) {
-  ws = new WebSocket(`wss://${location.host}/ws`);
+function showConnectionStatus(status, message) {
+  // Remove any existing status indicator
+  const existingStatus = document.getElementById("connection-status");
+  if (existingStatus) {
+    existingStatus.remove();
+  }
+
+  // Create new status indicator
+  const statusDiv = document.createElement("div");
+  statusDiv.id = "connection-status";
+  statusDiv.style.cssText = `
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-weight: bold;
+    z-index: 1000;
+    ${status === 'connected' ? 'background: #4CAF50; color: white;' : 
+      status === 'disconnected' ? 'background: #f44336; color: white;' : 
+      'background: #ff9800; color: white;'}
+  `;
+  statusDiv.textContent = message;
+  document.body.appendChild(statusDiv);
+
+  // Auto-hide success messages
+  if (status === 'connected') {
+    setTimeout(() => {
+      if (statusDiv.parentNode) {
+        statusDiv.remove();
+      }
+    }, 3000);
+  }
+}
+
+function connectWebSocket() {
+  if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
+    return;
+  }
+
+  const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  ws = new WebSocket(`${protocol}//${location.host}/ws`);
 
   ws.onopen = () => {
     console.info("WebSocket connected!");
+    isConnected = true;
+    reconnectAttempts = 0;
+    reconnectDelay = 1000;
+    
+    showConnectionStatus('connected', 'Connected to game!');
+    
+    // Rejoin the game
     ws.send(JSON.stringify({ type: "join", name: playerName }));
   };
 
   ws.onerror = (error) => {
     console.error("WebSocket error:", error);
+    isConnected = false;
   };
 
-  ws.onclose = () => {
-    console.warn("WebSocket disconnected!");
+  ws.onclose = (event) => {
+    console.warn("WebSocket disconnected!", event.code, event.reason);
+    isConnected = false;
+    
+    // Don't show disconnected message if this was intentional
+    if (event.code !== 1000) {
+      showConnectionStatus('disconnected', 'Connection lost. Attempting to reconnect...');
+      attemptReconnect();
+    }
   };
 
   ws.onmessage = (event) => {
@@ -91,3 +154,43 @@ function connectWebSocket(playerName) {
     }
   };
 }
+
+function attemptReconnect() {
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+  }
+
+  if (reconnectAttempts >= maxReconnectAttempts) {
+    showConnectionStatus('disconnected', 'Failed to reconnect. Please refresh the page.');
+    return;
+  }
+
+  reconnectAttempts++;
+  const delay = Math.min(reconnectDelay * Math.pow(1.5, reconnectAttempts - 1), 30000);
+  
+  showConnectionStatus('reconnecting', `Reconnecting... (attempt ${reconnectAttempts}/${maxReconnectAttempts})`);
+  
+  reconnectTimer = setTimeout(() => {
+    if (!isConnected) {
+      connectWebSocket();
+    }
+  }, delay);
+}
+
+// Handle page visibility changes to reconnect when tab becomes active
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && !isConnected && playerName) {
+    attemptReconnect();
+  }
+});
+
+// Handle online/offline events
+window.addEventListener('online', () => {
+  if (!isConnected && playerName) {
+    setTimeout(() => attemptReconnect(), 1000);
+  }
+});
+
+window.addEventListener('offline', () => {
+  showConnectionStatus('disconnected', 'You are offline');
+});
