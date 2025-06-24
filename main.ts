@@ -50,8 +50,8 @@ function broadcastHost(message: string) {
 function updatePlayerList() {
   const plrs = Array.from(players.values()).map(plr => `${plr.id} ${plr.locked ? "T" : "F"} ${plr.name}`);
   const data = `PLU ${JSON.stringify(plrs)}`;
-  broadcast(data);
   broadcastHost(data);
+  broadcast(data);
 }
 
 // Handle a new WebSocket connection (either player or host)
@@ -72,7 +72,7 @@ function handleWS(socket: WebSocket) {
     hosts.delete(socket);
     updatePlayerList();
 
-    if (players.size === 0 && hosts.size === 0) prevId = 0;
+    if (players.size === 0) prevId = 0;
   };
 
   socket.onmessage = (event: MessageEvent<string>) => {
