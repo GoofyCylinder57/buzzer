@@ -27,11 +27,14 @@ const DOM = {
 };
 
 let ws = null;
+
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 10;
-let reconnectDelay = 1000; // Start with 1 second
+
+const reconnectDelay = 1000;
 let reconnectTimer = null;
 let isConnected = false;
+
 let playerList = [];
 const buzzedPlayers = new Set();
 const selectedPlayers = new Set();
@@ -40,9 +43,7 @@ const selectedPlayers = new Set();
 function showConnectionStatus(status, message) {
   // Remove any existing status indicator
   const existingStatus = document.getElementById("connection-status");
-  if (existingStatus) {
-    existingStatus.remove();
-  }
+  if (existingStatus) existingStatus.remove();
 
   // Create new status indicator
   const statusDiv = document.createElement("div");
@@ -66,9 +67,7 @@ function showConnectionStatus(status, message) {
   // Auto-hide success messages
   if (status === 'connected') {
     setTimeout(() => {
-      if (statusDiv.parentNode) {
-        statusDiv.remove();
-      }
+      if (statusDiv.parentNode) statusDiv.remove();
     }, 3000);
   }
 }
@@ -107,13 +106,11 @@ function togglePlayerSelection(uuid, checked) {
 }
 
 /** Send lock/unlock command for a player */
-function togglePlayerLock(uuid, shouldLock) {
+function togglePlayerLock(ids, shouldLock) {
   if (ws && ws.readyState === WebSocket.OPEN) {
-    const action = shouldLock ? "lock" : "unlock";
-    const data = JSON.stringify({ "type": action, "who": [uuid] });
+    const action = shouldLock ? "LOCK" : "UNLOCK";
+    const data = `${action} ${JSON.stringify(ids)}`;
     ws.send(data);
-
-    // No local state update here; server will send updated playerListUpdate
   }
 }
 
@@ -123,11 +120,11 @@ function updatePlayerDisplay() {
 
   // Sort players: buzzed players first (in order they buzzed), then unbuzzed players
   const buzzedPlayersList = Array.from(buzzedPlayers);
-  const unbuzzedPlayers = playerList.filter(player => !buzzedPlayers.has(player.uuid));
+  const unbuzzedPlayers = playerList.filter(player => !buzzedPlayers.has(player.id));
 
   // Add buzzed players first
   buzzedPlayersList.forEach((uuid, index) => {
-    const player = playerList.find(p => p.uuid === uuid);
+    const player = playerList.find(p => p.id === uuid);
     if (player) {
       createPlayerElement(player, index + 1);
     }
@@ -145,7 +142,6 @@ function updatePlayerDisplay() {
 function createPlayerElement(player, buzzOrder) {
   const li = document.createElement("li");
   li.className = `player ${buzzOrder ? 'buzzed' : ''}`;
-  li.title = player.uuid;
 
   // Checkbox for selection
   const checkboxContainer = document.createElement("label");
@@ -153,9 +149,9 @@ function createPlayerElement(player, buzzOrder) {
 
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
-  checkbox.checked = selectedPlayers.has(player.uuid);
+  checkbox.checked = selectedPlayers.has(player.id);
   checkbox.addEventListener('change', (e) => {
-    togglePlayerSelection(player.uuid, e.target.checked);
+    togglePlayerSelection(player.id, e.target.checked);
   });
 
   const checkmark = document.createElement("span");
@@ -170,7 +166,7 @@ function createPlayerElement(player, buzzOrder) {
 
   const nameSpan = document.createElement("span");
   nameSpan.className = "player-name";
-  nameSpan.textContent = player.name;
+  nameSpan.textContent = `${player.name} (${player.id})`;
 
   playerInfo.appendChild(nameSpan);
 
@@ -185,13 +181,13 @@ function createPlayerElement(player, buzzOrder) {
   const controls = document.createElement("div");
   controls.className = "player-controls";
 
-  const isLocked = player.locked; // Use server state
+  const isLocked = player.locked;
 
   const lockToggle = document.createElement("button");
   lockToggle.className = `lock-toggle ${isLocked ? 'locked' : 'unlocked'}`;
   lockToggle.textContent = isLocked ? 'Locked' : 'Unlocked';
   lockToggle.addEventListener('click', () => {
-    togglePlayerLock(player.uuid, !isLocked);
+    togglePlayerLock([parseInt(player.id)], !isLocked);
   });
 
   controls.appendChild(lockToggle);
@@ -206,9 +202,7 @@ function createPlayerElement(player, buzzOrder) {
 
 /** Connect to the server WebSocket */
 function connectWebSocket() {
-  if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
-    return;
-  }
+  if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) return;
 
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   ws = new WebSocket(`${protocol}//${location.host}/ws`);
@@ -217,7 +211,6 @@ function connectWebSocket() {
     console.info("WebSocket connected!");
     isConnected = true;
     reconnectAttempts = 0;
-    reconnectDelay = 1000;
     
     showConnectionStatus('connected', 'Host connected!');
   };
@@ -238,21 +231,30 @@ function connectWebSocket() {
     isConnected = false;
   };
 
-  ws.onmessage = (event) => {
-    const message = JSON.parse(event.data);
+  ws.onmessage = (/**@type{MessageEvent<string>}*/event) => {
+    const message = {
+      type: event.data.split(" ")[0],
+      data: event.data.split(" ").slice(1).join(" "),
+    };
     console.log("Host received:", message);
 
     switch (message.type) {
-      case "buzz": {
-        buzzedPlayers.add(message.user.uuid);
+      case "BUZZ": {
+        buzzedPlayers.add(message.data);
         updatePlayerDisplay();
         break;
       }
-      case "playerListUpdate": {
-        playerList = message.players;
+      case "PLU": {
+        playerList = JSON.parse(message.data).map((plr) => {
+          return {
+            id: parseInt(plr.split(" ")[0]),
+            locked: plr.split(" ")[1] === "T",
+            name: plr.split(" ").slice(2).join(" "),
+          };
+        });
 
         // Clean up buzzedPlayers and selectedPlayers for disconnected players
-        const currentUuids = new Set(playerList.map(p => p.uuid));
+        const currentUuids = new Set(playerList.map(p => p.id));
         for (const uuid of buzzedPlayers) {
           if (!currentUuids.has(uuid)) {
             buzzedPlayers.delete(uuid);
@@ -265,9 +267,8 @@ function connectWebSocket() {
         }
 
         // If all players are unlocked, reset the buzz order
-        if (playerList.every(player => !player.locked)) {
+        if (playerList.every(player => !player.locked))
           buzzedPlayers.clear();
-        }
 
         updatePlayerDisplay();
         break;
@@ -278,9 +279,7 @@ function connectWebSocket() {
 
 /** Attempt to reconnect with exponential backoff */
 function attemptReconnect() {
-  if (reconnectTimer) {
-    clearTimeout(reconnectTimer);
-  }
+  if (reconnectTimer) clearTimeout(reconnectTimer);
 
   if (reconnectAttempts >= maxReconnectAttempts) {
     showConnectionStatus('disconnected', 'Failed to reconnect. Please refresh the page.');
@@ -293,7 +292,7 @@ function attemptReconnect() {
   
   reconnectTimer = setTimeout(() => {
     if (!isConnected) {
-      connectWebSocket();
+      connectWebSocket(); // TODO: #8 Change to a reconnect that keeps id
     }
   }, reconnectDelay);
 }
@@ -303,12 +302,10 @@ DOM.selectAll.addEventListener('change', (e) => {
   const shouldSelectAll = e.target.checked;
   
   if (shouldSelectAll) {
-    // Select all players
     playerList.forEach(player => {
-      selectedPlayers.add(player.uuid);
+      selectedPlayers.add(player.id);
     });
   } else {
-    // Deselect all players
     selectedPlayers.clear();
   }
   
@@ -318,18 +315,14 @@ DOM.selectAll.addEventListener('change', (e) => {
 DOM.lockSelected.addEventListener('click', () => {
   if (ws && ws.readyState === WebSocket.OPEN && selectedPlayers.size > 0) {
     const uuids = Array.from(selectedPlayers);
-    const data = JSON.stringify({ "type": "lock", "who": uuids });
-    ws.send(data);
-    // No local state update; wait for playerListUpdate
+    togglePlayerLock(uuids, true);
   }
 });
 
 DOM.unlockSelected.addEventListener('click', () => {
   if (ws && ws.readyState === WebSocket.OPEN && selectedPlayers.size > 0) {
     const uuids = Array.from(selectedPlayers);
-    const data = JSON.stringify({ "type": "unlock", "who": uuids });
-    ws.send(data);
-    // No local state update; wait for playerListUpdate
+    togglePlayerLock(uuids, false);
   }
 });
 
@@ -338,16 +331,12 @@ connectWebSocket();
 
 // Handle page visibility changes to reconnect when tab becomes active
 document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && !isConnected) {
-    attemptReconnect();
-  }
+  if (!document.hidden && !isConnected) attemptReconnect();
 });
 
 // Handle online/offline events
 addEventListener('online', () => {
-  if (!isConnected) {
-    setTimeout(() => attemptReconnect(), 1000);
-  }
+  if (!isConnected) setTimeout(() => attemptReconnect(), 1000);
 });
 
 addEventListener('offline', () => {
