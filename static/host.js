@@ -344,12 +344,12 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // Handle online/offline events
-self.addEventListener('online', () => {
+addEventListener('online', () => {
   if (!isConnected) {
     setTimeout(() => attemptReconnect(), 1000);
   }
 });
 
-self.addEventListener('offline', () => {
+addEventListener('offline', () => {
   showConnectionStatus('disconnected', 'You are offline');
 });
