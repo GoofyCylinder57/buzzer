@@ -79,7 +79,7 @@ DOM.buzzer.onclick = () => {
 
   // Play sound if enabled
   if (checked && enabled) {
-    DOM.info.audio.el.fastSeek(0);
+    DOM.info.audio.el.currentTime = 0;
     DOM.info.audio.el.play();
   }
 
