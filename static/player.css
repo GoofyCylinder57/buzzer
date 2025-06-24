@@ -65,7 +65,7 @@
 }
 
 #buzzer:active {
-  border: 1em outset var(--color-buzzer-border);
+  border: 1em solid var(--color-buzzer-border);
 }
 
 /* UUID Display */
