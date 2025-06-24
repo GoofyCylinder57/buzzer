@@ -238,12 +238,12 @@ document.addEventListener("visibilitychange", () => {
 });
 
 // Handle online/offline events
-window.addEventListener("online", () => {
+addEventListener("online", () => {
   if (!isConnected && playerName) {
     setTimeout(() => attemptReconnect(), 1000);
   }
 });
 
-window.addEventListener("offline", () => {
+addEventListener("offline", () => {
   showConnectionStatus("disconnected", "You are offline");
 });
