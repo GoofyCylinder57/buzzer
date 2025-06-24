@@ -169,7 +169,7 @@ function connectWebSocket() {
       type: event.data.split(" ")[0],
       data: event.data.split(" ").slice(1).join(" "),
     };
-    console.log("Received:", message);
+    console.info(message);
 
     switch (message.type) {
       case "PLU":

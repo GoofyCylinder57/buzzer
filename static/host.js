@@ -236,7 +236,7 @@ function connectWebSocket() {
       type: event.data.split(" ")[0],
       data: event.data.split(" ").slice(1).join(" "),
     };
-    console.log("Host received:", message);
+    console.log("!Host!", message);
 
     switch (message.type) {
       case "BUZZ": {
