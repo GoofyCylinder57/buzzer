@@ -6,23 +6,26 @@ const players = new Map<WebSocket, Player>();
 const hosts = new Set<WebSocket>();
 
 // Player class to represent each player
-class Player {
-  name: string;
-  uuid: ReturnType<Crypto["randomUUID"]>;
-  locked: boolean = false; // Indicates if the player is locked
+let prevId = 0;
+type Player = {
+  name: string,
+  id: number,
+  locked: boolean,
+};
 
-  constructor(name: string) {
-    this.name = name;
-    this.uuid = crypto.randomUUID();
-  }
+function Player(name: string): Player {
+  return {
+    name,
+    id: prevId++,
+    locked: false,
+  };
 }
 
 // Broadcast a message to all player clients
-function broadcast(message: object) {
-  const msg = JSON.stringify(message);
+function broadcast(message: string) {
   for (const ws of players.keys()) {
     try {
-      ws.send(msg);
+      ws.send(message);
     } catch (e) {
       console.error("Error sending to WebSocket:", e);
       players.delete(ws);
@@ -32,11 +35,10 @@ function broadcast(message: object) {
 }
 
 // Broadcast a message to all host clients
-function broadcastHost(message: object) {
-  const msg = JSON.stringify(message);
+function broadcastHost(message: string) {
   for (const ws of hosts.values()) {
     try {
-      ws.send(msg);
+      ws.send(message);
     } catch (e) {
       console.error("Error sending to Host WebSocket:", e);
       hosts.delete(ws);
@@ -46,12 +48,8 @@ function broadcastHost(message: object) {
 
 // Send the current player list to all clients and hosts
 function updatePlayerList() {
-  const plrs = Array.from(players.values()).map((p) => ({
-    name: p.name,
-    uuid: p.uuid,
-    locked: p.locked, // Include locked state
-  }));
-  const data = { type: "playerListUpdate", players: plrs };
+  const plrs = Array.from(players.values()).map(plr => `${plr.id} ${plr.locked ? "T" : "F"} ${plr.name}`);
+  const data = `PLU ${JSON.stringify(plrs)}`;
   broadcast(data);
   broadcastHost(data);
 }
@@ -60,7 +58,7 @@ function updatePlayerList() {
 function handleWS(socket: WebSocket) {
   socket.onopen = () => {
     console.info("WebSocket opened!");
-    hosts.add(socket); // By default, treat as host until join
+    hosts.add(socket); // We add users to the hosts list until they ask for a ID, then we make them a player
     updatePlayerList();
   };
 
@@ -73,61 +71,66 @@ function handleWS(socket: WebSocket) {
     players.delete(socket);
     hosts.delete(socket);
     updatePlayerList();
+
+    if (players.size === 0 && hosts.size === 0) prevId = 0;
   };
 
-  socket.onmessage = (event) => {
-    const message = JSON.parse(event.data);
-    console.log("Received WS message:", message);
+  socket.onmessage = (event: MessageEvent<string>) => {
+    const message = {
+      type: event.data.split(" ")[0],
+      data: event.data.split(" ").slice(1).join(" "),
+    };
+    console.log("Received WS message:", event.data);
 
     switch (message.type) {
-      case "join": {
-        // Player joins the game
-        if (!message.name || typeof message.name !== "string") break;
-
-        const plr = new Player(message.name);
+      case "JOIN": {
+        const plr = Player(message.data);
         players.set(socket, plr);
         hosts.delete(socket); // This socket is now a player, not a host
 
-        socket.send(`{"type":"joinResponse", "uuid":"${plr.uuid}"}`);
+        socket.send(`ACK ${plr.id}`);
         updatePlayerList();
         break;
       }
-      case "buzz": {
-        // Player buzzes in
+      case "BUZZ": {
         const player = players.get(socket);
         if (player) {
-          player.locked = true; // Lock the player on buzz
-          broadcastHost({ type: "buzz", user: { name: player.name, uuid: player.uuid } });
+          player.locked = true;
+          broadcastHost(`BUZZ ${player.id}`);
           updatePlayerList();
         }
         break;
       }
-      case "unlock":
-        // Unlock specific players
-        if (!message.who || !Array.isArray(message.who)) break;
-        message.who.forEach((uuid: string) => {
-          const plr = Array.from(players.values()).find((p) => p.uuid === uuid);
+      case "UNLOCK": {
+        const who = JSON.parse(message.data);
+        if (!who || !Array.isArray(who)) break;
+        who.forEach((uid: string) => {
+          const uuid = parseInt(uid, 10);
+          const plr = Array.from(players.values()).find((p) => p.id === uuid);
           if (plr) plr.locked = false;
           // Find the WebSocket for this player and notify them
-          const plr_sock = players.entries().find((plr) => plr[1].uuid === uuid)
+          const plr_sock = players.entries().find((plr) => plr[1].id === uuid)
             ?.[0];
-          if (plr_sock) plr_sock.send(`{"type":"unlock"}`);
+          if (plr_sock) plr_sock.send('UNLOCK');
         });
         updatePlayerList();
         break;
-      case "lock":
-        // Lock specific players
-        if (!message.who || !Array.isArray(message.who)) break;
-        message.who.forEach((uuid: string) => {
-          const plr = Array.from(players.values()).find((p) => p.uuid === uuid);
+      }
+      case "LOCK": {
+        const who = JSON.parse(message.data);
+        if (!who || !Array.isArray(who)) break;
+        who.forEach((uid: string) => {
+          const uuid = parseInt(uid, 10);
+          const plr = Array.from(players.values()).find((p) => p.id === uuid);
           if (plr) plr.locked = true;
           // Find the WebSocket for this player and notify them
-          const plr_sock = players.entries().find((plr) => plr[1].uuid === uuid)
+          const plr_sock = players.entries().find((plr) => plr[1].id === uuid)
             ?.[0];
-          if (plr_sock) plr_sock.send(`{"type":"lock"}`);
+          if (plr_sock) plr_sock.send(`LOCK`);
         });
         updatePlayerList();
         break;
+      }
     }
   };
 }
@@ -136,60 +139,72 @@ function handleWS(socket: WebSocket) {
 async function handler(req: Request): Promise<Response> {
   const url = new URL(req.url);
 
-  if (url.pathname === "/") {
-    // Serve the player page
-    const filePath = joinPath(Deno.cwd(), "static", "player.html");
-    const fileContent = await Deno.readTextFile(filePath);
-    return new Response(fileContent, {
-      headers: { "Content-Type": "text/html" },
-    });
-  } else if (url.pathname === "/host") {
-    // Serve the host page
-    const filePath = joinPath(Deno.cwd(), "static", "host.html");
-    const fileContent = await Deno.readTextFile(filePath);
-    return new Response(fileContent, {
-      headers: { "Content-Type": "text/html" },
-    });
-  } else if (url.pathname === "/favicon.ico") {
-    // Serve favicon
-    const filePath = joinPath(Deno.cwd(), "static", "favicon.ico");
-    const fileContent = await Deno.readFile(filePath);
-    return new Response(fileContent, {
-      headers: { "Content-Type": "image/x-icon" },
-    });
-  } else if (url.pathname.startsWith("/static/")) {
-    // Serve static files (JS, CSS, etc.)
-    const filePath = joinPath(Deno.cwd(), url.pathname);
-    try {
-      const fileContent = await Deno.readFile(filePath);
-      const contentType = url.pathname.endsWith(".js")
-        ? "application/javascript"
-        : url.pathname.endsWith(".css")
-        ? "text/css"
-        : "text/plain";
+  switch (url.pathname) {
+    case "/": {
+      const filePath = joinPath(Deno.cwd(), "static", "player.html");
+      const fileContent = await Deno.readTextFile(filePath);
       return new Response(fileContent, {
-        headers: { "Content-Type": contentType },
+        headers: { "Content-Type": "text/html" },
       });
-    } catch (e) {
-      if (e instanceof Deno.errors.NotFound) {
-        return new Response("Not Found", { status: 404 });
-      }
-      return new Response("Internal Server Error", { status: 500 });
     }
-  } else if (url.pathname === "/ws") {
-    // Handle WebSocket upgrade
-    if (req.headers.get("upgrade") !== "websocket") {
-      return new Response("Expected a WebSocket upgrade", { status: 400 });
+    case "/host": {
+      const filePath = joinPath(Deno.cwd(), "static", "host.html");
+      const fileContent = await Deno.readTextFile(filePath);
+      return new Response(fileContent, {
+        headers: { "Content-Type": "text/html" },
+      });
     }
+    case "/favicon.ico": {
+      const filePath = joinPath(Deno.cwd(), "static", "favicon.ico");
+      const fileContent = await Deno.readFile(filePath);
+      return new Response(fileContent, {
+        headers: {
+          "Content-Type": "image/x-icon",
+          "Cache-Control": "max-age=604800",
+        },
+      });
+    }
+    case "/ws": {
+      if (req.headers.get("upgrade") !== "websocket")
+        return new Response("Expected a WebSocket upgrade", { status: 400 });
 
-    const { socket, response } = Deno.upgradeWebSocket(req);
-    handleWS(socket);
-    return response;
+      const { socket, response } = Deno.upgradeWebSocket(req);
+      handleWS(socket);
+      return response;
+    }
+    case "/static/buzz.wav": {
+      const filePath = joinPath(Deno.cwd(), "static", "buzz.wav");
+      const fileContent = await Deno.readFile(filePath);
+      return new Response(fileContent, {
+        headers: {
+          "Content-Type": "audio/wav",
+          "Cache-Control": "max-age=604800",
+        }
+      });
+    }
+    default:
+      if (url.pathname.startsWith("/static/")) {
+        const filePath = joinPath(Deno.cwd(), url.pathname);
+        try {
+          const fileContent = await Deno.readFile(filePath);
+          const contentType = url.pathname.endsWith(".js")
+            ? "application/javascript"
+            : url.pathname.endsWith(".css")
+            ? "text/css"
+            : "text/plain";
+          return new Response(fileContent, {
+            headers: { "Content-Type": contentType },
+          });
+        } catch (e) {
+          if (e instanceof Deno.errors.NotFound)
+            return new Response("Not Found", { status: 404 });
+          return new Response("Internal Server Error", { status: 500 });
+        }
+      }
   }
 
   // Fallback for unknown routes
   return new Response("Not Found", { status: 404 });
 }
 
-// Start the Deno HTTP server
 Deno.serve(handler);

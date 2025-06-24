@@ -17,7 +17,7 @@
  *   buzzer: HTMLButtonElement,
  *   connections: HTMLUListElement,
  *   info: {
- *     uuid: HTMLElement,
+ *     uid: HTMLElement,
  *     audio: {
  *       check: HTMLInputElement,
  *       el: HTMLAudioElement
@@ -35,7 +35,7 @@ const DOM = {
   buzzer: document.getElementById("buzzer"),
   connections: document.getElementById("connections"),
   info: {
-    uuid: document.getElementById("uuid"),
+    uid: document.getElementById("uuid"),
     audio: {
       check: document.getElementById("audio-check"),
       el: document.getElementById("buzzer-sound"),
@@ -45,19 +45,23 @@ const DOM = {
 
 /** WebSocket connection and state variables */
 let ws = null;
-let playerName = "";
+const player = {
+  name: "",
+  id: -1,
+  locked: false,
+};
+
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 10;
-let reconnectDelay = 1000; // Start with 1 second
+
+const reconnectDelay = 1000;
 let reconnectTimer = null;
 let isConnected = false;
 
-/** Handle pressing Enter in the name field */
 DOM.join.playerName.onkeydown = (event) => {
   if (event.key === "Enter") DOM.join.button.click();
 };
 
-/** Handle clicking the join button */
 DOM.join.button.onclick = () => {
   const name = DOM.join.playerName.value.trim();
   if (!name) {
@@ -65,35 +69,32 @@ DOM.join.button.onclick = () => {
     return;
   }
 
-  playerName = name;
+  player.name = name;
   DOM.join.section.style.display = "none";
   DOM.gameSection.style.display = "grid";
   connectWebSocket();
 };
 
-/** Handle clicking the buzzer */
 DOM.buzzer.onclick = () => {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
   const checked = DOM.info.audio.check.checked;
-  const enabled = !DOM.buzzer.disabled;
+  const enabled = !player.disabled;
 
-  // Play sound if enabled
   if (checked && enabled) {
     DOM.info.audio.el.currentTime = 0;
     DOM.info.audio.el.play();
   }
 
-  ws.send(`{"type":"buzz"}`);
+  ws.send(`BUZZ`);
   DOM.buzzer.disabled = true;
+  player.locked = true;
 };
 
 /** Show connection status messages */
 function showConnectionStatus(status, message) {
   // Remove any existing status indicator
   const existingStatus = document.getElementById("connection-status");
-  if (existingStatus) {
-    existingStatus.remove();
-  }
+  if (existingStatus) existingStatus.remove();
 
   // Create new status indicator
   const statusDiv = document.createElement("div");
@@ -120,21 +121,14 @@ function showConnectionStatus(status, message) {
   // Auto-hide success messages
   if (status === "connected") {
     setTimeout(() => {
-      if (statusDiv.parentNode) {
-        statusDiv.remove();
-      }
+      if (statusDiv.parentNode) statusDiv.remove();
     }, 3000);
   }
 }
 
 /** Connect to the server WebSocket */
 function connectWebSocket() {
-  if (
-    ws &&
-    (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)
-  ) {
-    return;
-  }
+  if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) return;
 
   const protocol = location.protocol === "https:" ? "wss:" : "ws:";
   ws = new WebSocket(`${protocol}//${location.host}/ws`);
@@ -143,12 +137,11 @@ function connectWebSocket() {
     console.info("WebSocket connected!");
     isConnected = true;
     reconnectAttempts = 0;
-    reconnectDelay = 1000;
 
     showConnectionStatus("connected", "Connected to game!");
 
-    // Rejoin the game
-    ws.send(JSON.stringify({ type: "join", name: playerName }));
+    // Tells the server to give us an ID 
+    ws.send(`JOIN ${player.name}`);
   };
 
   ws.onerror = (error) => {
@@ -171,32 +164,35 @@ function connectWebSocket() {
   };
 
   /** Handle messages from the server */
-  ws.onmessage = (event) => {
-    const message = JSON.parse(event.data);
+  ws.onmessage = (/**@type{MessageEvent<string>}*/event) => {
+    const message = {
+      type: event.data.split(" ")[0],
+      data: event.data.split(" ").slice(1).join(" "),
+    };
     console.log("Received:", message);
 
     switch (message.type) {
-      case "playerListUpdate":
-        // Update player list
+      case "PLU":
         DOM.connections.innerHTML = ``;
-        message.players.forEach((player) => {
+        JSON.parse(message.data).forEach((/**@type{string}*/player) => {
+          const name = player.split(" ").slice(2).join(" ");
           const li = document.createElement("li");
-          li.textContent = player.name;
-          li.title = player.uuid;
+          li.textContent = name;
           DOM.connections.appendChild(li);
         });
         break;
-      case "unlock":
-        // Enable buzzer
+      case "UNLOCK":
         DOM.buzzer.disabled = false;
+        player.locked = false;
         break;
-      case "lock":
-        // Disable buzzer
+      case "LOCK":
         DOM.buzzer.disabled = true;
+        player.locked = true;
         break;
-      case "joinResponse":
-        // Show player UUID
-        DOM.info.uuid.innerText = message.uuid;
+      case "ACK":
+        // Show player UID
+        DOM.info.uid.innerText = message.data;
+        player.id = message.data;
         break;
     }
   };
@@ -204,9 +200,7 @@ function connectWebSocket() {
 
 /** Attempt to reconnect with exponential backoff */
 function attemptReconnect() {
-  if (reconnectTimer) {
-    clearTimeout(reconnectTimer);
-  }
+  if (reconnectTimer) clearTimeout(reconnectTimer);
 
   if (reconnectAttempts >= maxReconnectAttempts) {
     showConnectionStatus(
@@ -225,23 +219,20 @@ function attemptReconnect() {
 
   reconnectTimer = setTimeout(() => {
     if (!isConnected) {
-      connectWebSocket();
+      connectWebSocket(); // TODO: #8 Change to a reconnect that keeps id
     }
   }, reconnectDelay);
 }
 
 // Handle page visibility changes to reconnect when tab becomes active
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && !isConnected && playerName) {
-    attemptReconnect();
-  }
+  if (!document.hidden && !isConnected && player.name) attemptReconnect();
 });
 
 // Handle online/offline events
 addEventListener("online", () => {
-  if (!isConnected && playerName) {
+  if (!isConnected && player.name) 
     setTimeout(() => attemptReconnect(), 1000);
-  }
 });
 
 addEventListener("offline", () => {
