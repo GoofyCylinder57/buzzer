@@ -1,3 +1,11 @@
+/*
+  Styles for the host view:
+  - Layout for host controls and player list
+  - Bulk actions toolbar
+  - Player list with buzzed/locked states
+  - Responsive design for mobile
+*/
+
 /* Host-specific Layout */
 body {
   justify-content: start;

@@ -1,4 +1,10 @@
-/* CSS Reset and Base Styles */
+/* 
+  CSS Reset and Base Styles
+  - Defines color variables for light and dark themes
+  - Applies a minimal reset and base layout for the app
+  - Styles for typography, lists, forms, and checkboxes
+  - Responsive design for mobile
+*/
 :root {
   --color-background: #fff;
   --color-primary: #007bff;
@@ -50,6 +56,7 @@
   }
 }
 
+/* Minimal reset for all elements except <head> */
 :not(head, head *) {
   all: unset;
   display: revert;
@@ -57,6 +64,7 @@
   box-sizing: border-box;
 }
 
+/* Layout for body and html */
 body, html {
   background-color: var(--color-background);
   color: var(--color-text);
@@ -68,7 +76,7 @@ body, html {
   justify-content: center;
 }
 
-/* Typography */
+/* Typography styles */
 h1 {
   font-size: min(10vw, 5em);
   font-weight: bolder;
@@ -88,7 +96,7 @@ h2 {
   font-weight: bold;
 }
 
-/* Lists */
+/* List styles */
 ol, ul {
   display: flex;
   flex-direction: column;
@@ -108,7 +116,7 @@ ul li:last-child, ol li:last-child {
   border-bottom: none;
 }
 
-/* Form Elements */
+/* Form elements */
 button {
   cursor: pointer;
   border: 3px solid;
@@ -124,7 +132,7 @@ input {
   text-align: center;
 }
 
-/* Custom Checkbox Styling */
+/* Custom checkbox styling */
 .checkbox-container {
   display: flex;
   align-items: center;
@@ -192,7 +200,7 @@ input {
   transform: rotate(45deg);
 }
 
-/* Responsive Design Base */
+/* Responsive design for small screens */
 @media (max-width: 480px) {
   h1 {
     font-size: 2.5em;

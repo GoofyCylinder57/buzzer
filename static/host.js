@@ -1,12 +1,21 @@
 /**
- @type{{
-  players: HTMLUListElement,
-  selectAll: HTMLInputElement,
-  lockSelected: HTMLButtonElement,
-  unlockSelected: HTMLButtonElement,
-  selectedCount: HTMLSpanElement,
-  selectedCount2: HTMLSpanElement,
- }}
+ * Host client logic:
+ * - Displays player list and buzz order
+ * - Allows locking/unlocking players (individually or in bulk)
+ * - Handles WebSocket connection and reconnection
+ * - Updates UI based on server events
+ */
+
+/**
+ * DOM references for host UI elements.
+ * @type {{
+ *   players: HTMLUListElement,
+ *   selectAll: HTMLInputElement,
+ *   lockSelected: HTMLButtonElement,
+ *   unlockSelected: HTMLButtonElement,
+ *   selectedCount: HTMLSpanElement,
+ *   selectedCount2: HTMLSpanElement
+ * }}
  */
 const DOM = {
   players: document.getElementById("players"),
@@ -27,6 +36,7 @@ let playerList = [];
 const buzzedPlayers = new Set();
 const selectedPlayers = new Set();
 
+/** Show connection status messages */
 function showConnectionStatus(status, message) {
   // Remove any existing status indicator
   const existingStatus = document.getElementById("connection-status");
@@ -63,6 +73,7 @@ function showConnectionStatus(status, message) {
   }
 }
 
+/** Update the count of selected players and button states */
 function updateSelectedCount() {
   const count = selectedPlayers.size;
   DOM.selectedCount.textContent = count;
@@ -85,6 +96,7 @@ function updateSelectedCount() {
   }
 }
 
+/** Toggle selection of a player */
 function togglePlayerSelection(uuid, checked) {
   if (checked) {
     selectedPlayers.add(uuid);
@@ -94,6 +106,7 @@ function togglePlayerSelection(uuid, checked) {
   updateSelectedCount();
 }
 
+/** Send lock/unlock command for a player */
 function togglePlayerLock(uuid, shouldLock) {
   if (ws && ws.readyState === WebSocket.OPEN) {
     const action = shouldLock ? "lock" : "unlock";
@@ -104,6 +117,7 @@ function togglePlayerLock(uuid, shouldLock) {
   }
 }
 
+/** Update the player list display */
 function updatePlayerDisplay() {
   DOM.players.innerHTML = '';
 
@@ -127,6 +141,7 @@ function updatePlayerDisplay() {
   updateSelectedCount();
 }
 
+/** Create a player list item element */
 function createPlayerElement(player, buzzOrder) {
   const li = document.createElement("li");
   li.className = `player ${buzzOrder ? 'buzzed' : ''}`;
@@ -189,6 +204,7 @@ function createPlayerElement(player, buzzOrder) {
   DOM.players.appendChild(li);
 }
 
+/** Connect to the server WebSocket */
 function connectWebSocket() {
   if (ws && (ws.readyState === WebSocket.CONNECTING || ws.readyState === WebSocket.OPEN)) {
     return;
@@ -260,6 +276,7 @@ function connectWebSocket() {
   };
 }
 
+/** Attempt to reconnect with exponential backoff */
 function attemptReconnect() {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);

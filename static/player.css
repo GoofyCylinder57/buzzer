@@ -1,3 +1,11 @@
+/*
+  Styles for the player view:
+  - Join section
+  - Game section and buzzer button
+  - UUID display and connections block
+  - Responsive and color theming
+*/
+
 /* Player Join Section */
 #join {
   display: flex;
@@ -27,6 +35,7 @@
 
 /* Buzzer Button */
 #buzzer {
+  /* Large, round, colored button for buzzing in */
   padding: min(25vh, 20vw);
   border: 0.75em solid var(--color-buzzer-border);
   border-radius: 50%;
@@ -40,6 +49,7 @@
 }
 
 #buzzer:disabled {
+  /* Disabled state for buzzer */
   background: var(--color-buzzer-disabled);
   border-color: var(--color-buzzer-border-disabled);
   filter: blur(2px);
@@ -47,6 +57,7 @@
 }
 
 #buzzer:hover:not(:disabled) {
+  /* Hover effect for buzzer */
   text-shadow: -1px 5px black;
   filter: brightness(1.15) drop-shadow(0 0 10px var(--color-buzzer));
   box-shadow: 0 0 20px 2px var(--color-buzzer-border);
@@ -65,11 +76,6 @@
   display: flex;
   flex-direction: column;
   align-items: end;
-}
-
-/* Connections Block */
-#connectionsBlock {
-  /* Inherits styles from base.css for h2 and ul */
 }
 
 body {

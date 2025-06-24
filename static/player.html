@@ -1,3 +1,8 @@
+<!--
+  Player page for joining and buzzing in.
+  - Join section for entering name
+  - Game section with buzzer, UUID, audio, and player list
+-->
 <!DOCTYPE html>
 <html lang="en-US">
 
@@ -12,11 +17,13 @@
 </head>
 
 <body>
+  <!-- Join section: enter name and join game -->
   <section id="join">
     <input autofocus type="text" id="playerName" placeholder="Enter your name">
     <button id="joinButton">Join Game</button>
   </section>
 
+  <!-- Game section: buzzer, UUID, audio, and player list -->
   <section id="game" style="display: none;">
     <div id="info-wrapper">
       <span id="uuid-wrapper">Your UUID is: <span id="uuid"></span></span>

@@ -1,21 +1,29 @@
 /**
- * @type{{
-    join: {
-      section: HTMLDivElement,
-      playerName: HTMLInputElement,
-      button: HTMLButtonElement,
-    },
-    gameSection: HTMLDivElement,
-    buzzer: HTMLButtonElement,
-    connections: HTMLOListElement,
-    info: {
-      uuid: HTMLSpanElement,
-      audio: {
-        check: HTMLInputElement,
-        el: HTMLAudioElement,
-      },
-    },
- }}
+ * Player client logic:
+ * - Handles joining, buzzing, and UI updates
+ * - Manages WebSocket connection and reconnection
+ * - Updates player list and buzzer state from server events
+ */
+
+/**
+ * DOM references for player UI elements.
+ * @type {{
+ *   join: {
+ *     section: HTMLElement,
+ *     playerName: HTMLInputElement,
+ *     button: HTMLButtonElement
+ *   },
+ *   gameSection: HTMLElement,
+ *   buzzer: HTMLButtonElement,
+ *   connections: HTMLUListElement,
+ *   info: {
+ *     uuid: HTMLElement,
+ *     audio: {
+ *       check: HTMLInputElement,
+ *       el: HTMLAudioElement
+ *     }
+ *   }
+ * }}
  */
 const DOM = {
   join: {
@@ -35,7 +43,7 @@ const DOM = {
   },
 };
 
-/** @type{WebSocket | null} */
+/** WebSocket connection and state variables */
 let ws = null;
 let playerName = "";
 let reconnectAttempts = 0;
@@ -44,10 +52,12 @@ let reconnectDelay = 1000; // Start with 1 second
 let reconnectTimer = null;
 let isConnected = false;
 
-DOM.join.playerName.onkeydown = (/** @type{KeyboardEvent} */ event) => {
+/** Handle pressing Enter in the name field */
+DOM.join.playerName.onkeydown = (event) => {
   if (event.key === "Enter") DOM.join.button.click();
 };
 
+/** Handle clicking the join button */
 DOM.join.button.onclick = () => {
   const name = DOM.join.playerName.value.trim();
   if (!name) {
@@ -61,11 +71,13 @@ DOM.join.button.onclick = () => {
   connectWebSocket();
 };
 
+/** Handle clicking the buzzer */
 DOM.buzzer.onclick = () => {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
   const checked = DOM.info.audio.check.checked;
   const enabled = !DOM.buzzer.disabled;
 
+  // Play sound if enabled
   if (checked && enabled) {
     DOM.info.audio.el.fastSeek(0);
     DOM.info.audio.el.play();
@@ -75,6 +87,7 @@ DOM.buzzer.onclick = () => {
   DOM.buzzer.disabled = true;
 };
 
+/** Show connection status messages */
 function showConnectionStatus(status, message) {
   // Remove any existing status indicator
   const existingStatus = document.getElementById("connection-status");
@@ -114,6 +127,7 @@ function showConnectionStatus(status, message) {
   }
 }
 
+/** Connect to the server WebSocket */
 function connectWebSocket() {
   if (
     ws &&
@@ -156,12 +170,14 @@ function connectWebSocket() {
     }
   };
 
+  /** Handle messages from the server */
   ws.onmessage = (event) => {
     const message = JSON.parse(event.data);
     console.log("Received:", message);
 
     switch (message.type) {
       case "playerListUpdate":
+        // Update player list
         DOM.connections.innerHTML = ``;
         message.players.forEach((player) => {
           const li = document.createElement("li");
@@ -171,18 +187,22 @@ function connectWebSocket() {
         });
         break;
       case "unlock":
+        // Enable buzzer
         DOM.buzzer.disabled = false;
         break;
       case "lock":
+        // Disable buzzer
         DOM.buzzer.disabled = true;
         break;
       case "joinResponse":
+        // Show player UUID
         DOM.info.uuid.innerText = message.uuid;
         break;
     }
   };
 }
 
+/** Attempt to reconnect with exponential backoff */
 function attemptReconnect() {
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
@@ -218,12 +238,12 @@ document.addEventListener("visibilitychange", () => {
 });
 
 // Handle online/offline events
-self.addEventListener("online", () => {
+window.addEventListener("online", () => {
   if (!isConnected && playerName) {
     setTimeout(() => attemptReconnect(), 1000);
   }
 });
 
-self.addEventListener("offline", () => {
+window.addEventListener("offline", () => {
   showConnectionStatus("disconnected", "You are offline");
 });
