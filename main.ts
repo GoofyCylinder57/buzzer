@@ -7,6 +7,8 @@ const hosts = new Set<WebSocket>();
 
 const buzzOrder: number[] = []; // Array of player IDs in buzz order
 
+let currentQuestionType = "pure-buzz"; // Default question type
+
 // Player class to represent each player
 let prevId = 0;
 type Player = {
@@ -76,6 +78,8 @@ function handleWS(socket: WebSocket) {
   socket.onopen = () => {
     console.info("WebSocket opened!");
     hosts.add(socket); // We add users to the hosts list until they ask for a ID, then we make them a player
+    
+    socket.send(`QUESTION_TYPE ${currentQuestionType}`);
     updatePlayerList();
   };
 
@@ -156,6 +160,7 @@ function handleWS(socket: WebSocket) {
         break;
       }
       case "QUESTION_TYPE": {
+        currentQuestionType = message.data || "pure-buzz";
         broadcast(`QUESTION_TYPE ${message.data}`);
         break;
       }
