@@ -115,7 +115,7 @@ function handleWS(socket: WebSocket) {
       }
       case "BUZZ": {
         const player = players.get(socket);
-        if (player) {
+        if (player && !player.locked) {
           player.locked = true;
           // Only add to buzzOrder if not already present
           if (!buzzOrder.includes(player.id)) {
