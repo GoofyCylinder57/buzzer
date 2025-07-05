@@ -14,7 +14,8 @@
  *   lockSelected: HTMLButtonElement,
  *   unlockSelected: HTMLButtonElement,
  *   selectedCount: HTMLSpanElement,
- *   selectedCount2: HTMLSpanElement
+ *   selectedCount2: HTMLSpanElement,
+ *   questionTypeSelect: HTMLSelectElement
  * }}
  */
 const DOM = {
@@ -24,6 +25,7 @@ const DOM = {
   unlockSelected: document.getElementById("unlockSelected"),
   selectedCount: document.getElementById("selectedCount"),
   selectedCount2: document.getElementById("selectedCount2"),
+  questionTypeSelect: document.getElementById("questionType"),
 };
 
 let ws = null;
@@ -38,6 +40,7 @@ let isConnected = false;
 let playerList = [];
 const buzzedPlayers = new Set();
 const selectedPlayers = new Set();
+const buzzedAnswers = {}; // { [playerId]: answer }
 
 /** Show connection status messages */
 function showConnectionStatus(status, message) {
@@ -118,6 +121,47 @@ function togglePlayerLock(ids, shouldLock) {
 function updatePlayerDisplay() {
   DOM.players.innerHTML = '';
 
+  // Add table header (no "check" header, combine with Rank & Name)
+  const header = document.createElement("div");
+  header.className = "player player-header";
+  header.style.fontWeight = "bold";
+
+  // Combined cell for check + Rank & Name
+  const rankNameHeader = document.createElement("div");
+  rankNameHeader.className = "player-cell player-rank-name-header";
+  rankNameHeader.textContent = "Rank & Name";
+
+  // Add clear ranking button
+  const clearBtn = document.createElement("button");
+  clearBtn.textContent = "✕";
+  clearBtn.title = "Clear all rankings";
+  clearBtn.style.marginLeft = "0.5em";
+  clearBtn.style.fontSize = "0.9em";
+  clearBtn.style.padding = "0.1em 0.5em";
+  clearBtn.style.cursor = "pointer";
+  clearBtn.onclick = () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send("CLEAR_RANKINGS");
+    }
+  };
+  rankNameHeader.appendChild(clearBtn);
+
+  header.appendChild(rankNameHeader);
+
+  // Answer header
+  const answerHeader = document.createElement("div");
+  answerHeader.className = "player-cell";
+  answerHeader.textContent = "Answer";
+  header.appendChild(answerHeader);
+
+  // Lock header
+  const lockHeader = document.createElement("div");
+  lockHeader.className = "player-cell";
+  lockHeader.textContent = "Lock";
+  header.appendChild(lockHeader);
+
+  DOM.players.appendChild(header);
+
   // Sort players: buzzed players first (in order they buzzed), then unbuzzed players
   const buzzedPlayersList = Array.from(buzzedPlayers);
   const unbuzzedPlayers = playerList.filter(player => !buzzedPlayers.has(player.id));
@@ -140,64 +184,70 @@ function updatePlayerDisplay() {
 
 /** Create a player list item element */
 function createPlayerElement(player, buzzOrder) {
-  const li = document.createElement("li");
-  li.className = `player ${buzzOrder ? 'buzzed' : ''}`;
+  const row = document.createElement("div");
+  row.className = `player${buzzOrder ? ' buzzed' : ''}`;
 
-  // Checkbox for selection
+  // Combined Checkbox + Rank & Name cell
+  const rankNameCell = document.createElement("div");
+  rankNameCell.className = "player-cell player-rank-name";
+  rankNameCell.style.display = "flex";
+  rankNameCell.style.alignItems = "center";
+  rankNameCell.style.gap = "0.75em";
+
+  // Checkbox
   const checkboxContainer = document.createElement("label");
   checkboxContainer.className = "checkbox-container";
-
   const checkbox = document.createElement("input");
   checkbox.type = "checkbox";
   checkbox.checked = selectedPlayers.has(player.id);
   checkbox.addEventListener('change', (e) => {
     togglePlayerSelection(player.id, e.target.checked);
   });
-
   const checkmark = document.createElement("span");
   checkmark.className = "checkmark";
-
   checkboxContainer.appendChild(checkbox);
   checkboxContainer.appendChild(checkmark);
 
-  // Player info section
-  const playerInfo = document.createElement("div");
-  playerInfo.className = "player-info";
+  rankNameCell.appendChild(checkboxContainer);
 
+  // Buzz indicator and name
+  if (player.rank) {
+    const buzzIndicator = document.createElement("span");
+    buzzIndicator.className = "buzz-indicator";
+    buzzIndicator.textContent = `#${player.rank}`;
+    rankNameCell.appendChild(buzzIndicator);
+  }
   const nameSpan = document.createElement("span");
   nameSpan.className = "player-name";
   nameSpan.textContent = `${player.name} (${player.id})`;
+  rankNameCell.appendChild(nameSpan);
 
-  playerInfo.appendChild(nameSpan);
+  // Answer cell
+  const answerCell = document.createElement("div");
+  answerCell.className = "player-cell";
+  const answerSpan = document.createElement("span");
+  answerSpan.className = "player-answer";
+  answerSpan.textContent = player.rank ? (player.answer || "BUZZ") : "";
+  answerCell.appendChild(answerSpan);
 
-  if (buzzOrder) {
-    const buzzIndicator = document.createElement("span");
-    buzzIndicator.className = "buzz-indicator";
-    buzzIndicator.textContent = `#${buzzOrder}`;
-    playerInfo.appendChild(buzzIndicator);
-  }
-
-  // Control buttons section
-  const controls = document.createElement("div");
-  controls.className = "player-controls";
-
+  // Lock status cell
+  const lockCell = document.createElement("div");
+  lockCell.className = "player-cell";
   const isLocked = player.locked;
-
   const lockToggle = document.createElement("button");
   lockToggle.className = `lock-toggle ${isLocked ? 'locked' : 'unlocked'}`;
   lockToggle.textContent = isLocked ? 'Locked' : 'Unlocked';
   lockToggle.addEventListener('click', () => {
     togglePlayerLock([parseInt(player.id)], !isLocked);
   });
+  lockCell.appendChild(lockToggle);
 
-  controls.appendChild(lockToggle);
+  // Assemble row
+  row.appendChild(rankNameCell);
+  row.appendChild(answerCell);
+  row.appendChild(lockCell);
 
-  // Assemble the player element
-  li.appendChild(checkboxContainer);
-  li.appendChild(playerInfo);
-  li.appendChild(controls);
-
-  DOM.players.appendChild(li);
+  DOM.players.appendChild(row);
 }
 
 /** Connect to the server WebSocket */
@@ -240,35 +290,30 @@ function connectWebSocket() {
 
     switch (message.type) {
       case "BUZZ": {
-        buzzedPlayers.add(message.data);
+        // message.data: "<playerId> <answer>"
+        const [id, ...answerParts] = message.data.split(" ");
+        const answer = answerParts.join(" ") || "BUZZ";
+        buzzedPlayers.add(parseInt(id));
+        buzzedAnswers[id] = answer;
         updatePlayerDisplay();
         break;
       }
       case "PLU": {
-        playerList = JSON.parse(message.data).map((plr) => {
-          return {
-            id: parseInt(plr.split(" ")[0]),
-            locked: plr.split(" ")[1] === "T",
-            name: plr.split(" ").slice(2).join(" "),
-          };
-        });
+        // message.data is now a JSON object
+        const parsed = JSON.parse(message.data);
+        playerList = parsed.players;
 
-        // Clean up buzzedPlayers and selectedPlayers for disconnected players
+        // Use server-provided buzzOrder for display order
+        buzzedPlayers.clear();
+        parsed.buzzOrder.forEach(id => buzzedPlayers.add(id));
+
+        // Clean up selectedPlayers for disconnected players
         const currentUuids = new Set(playerList.map(p => p.id));
-        for (const uuid of buzzedPlayers) {
-          if (!currentUuids.has(uuid)) {
-            buzzedPlayers.delete(uuid);
-          }
-        }
         for (const uuid of selectedPlayers) {
           if (!currentUuids.has(uuid)) {
             selectedPlayers.delete(uuid);
           }
         }
-
-        // If all players are unlocked, reset the buzz order
-        if (playerList.every(player => !player.locked))
-          buzzedPlayers.clear();
 
         updatePlayerDisplay();
         break;
@@ -341,4 +386,29 @@ addEventListener('online', () => {
 
 addEventListener('offline', () => {
   showConnectionStatus('disconnected', 'You are offline');
+});
+
+let prevQuestionType = DOM.questionTypeSelect.value;
+DOM.questionTypeSelect.addEventListener("change", () => {
+  // Check if all players are locked before allowing question type change
+  const unlockedPlayers = playerList.filter(player => !player.locked);
+  if (unlockedPlayers.length > 0) {
+    alert("All buzzers must be locked before changing the question type.");
+    DOM.questionTypeSelect.value = prevQuestionType; // Revert to previous selection
+    return;
+  }
+
+  let numChoices = 0;
+  if (DOM.questionTypeSelect.value === "multiple-choice") {
+    numChoices = parseInt(prompt("Enter the number of choices (2-6):", "4"));
+    if (isNaN(numChoices) || numChoices < 2 || numChoices > 6) {
+      alert("Invalid number of choices. Please enter a number between 2 and 6.");
+      return;
+    }
+  }
+
+  prevQuestionType = DOM.questionTypeSelect.value;
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(`QUESTION_TYPE ${DOM.questionTypeSelect.value}${DOM.questionTypeSelect.value === "multiple-choice" ? ` ${numChoices}` : ''}`);
+  }
 });
