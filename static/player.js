@@ -7,23 +7,23 @@
 
 /**
  * DOM references for player UI elements.
- * @type {{
- *   join: {
- *     section: HTMLElement,
- *     playerName: HTMLInputElement,
- *     button: HTMLButtonElement
- *   },
- *   gameSection: HTMLElement,
- *   buzzer: HTMLButtonElement,
- *   connections: HTMLUListElement,
- *   info: {
- *     uid: HTMLElement,
- *     audio: {
- *       check: HTMLInputElement,
- *       el: HTMLAudioElement
- *     }
- *   }
- * }}
+  @type {{
+    join: {
+      section: HTMLElement,
+      playerName: HTMLInputElement,
+      button: HTMLButtonElement
+    },
+    gameSection: HTMLElement,
+    buzzer: HTMLButtonElement,
+    connections: HTMLUListElement,
+    info: {
+      uid: HTMLElement,
+      audio: {
+        check: HTMLInputElement,
+        el: HTMLAudioElement
+      }
+    }
+  }}
  */
 const DOM = {
   join: {
@@ -48,7 +48,7 @@ let ws = null;
 const player = {
   name: "",
   id: -1,
-  locked: false,
+  locked: true, // Initially locked until server unlocks
 };
 
 let currentQuestionType = "pure-buzz"; // Track the current question type
@@ -86,17 +86,18 @@ DOM.buzzer.onclick = () => {
   const isShortAnswer = currentQuestionType === "short-answer";
 
   if (isShortAnswer) {
-    const answer = prompt("Type your answer:");
-    if (answer && answer.trim()) {
-      if (checked && enabled) {
-        DOM.info.audio.el.currentTime = 0;
-        DOM.info.audio.el.play();
+    showShortAnswerDialog((answer) => {
+      if (answer && answer.trim()) {
+        if (checked && enabled) {
+          DOM.info.audio.el.currentTime = 0;
+          DOM.info.audio.el.play();
+        }
+        ws.send(`BUZZ ${answer.trim()}`);
+        DOM.buzzer.disabled = true;
+        player.locked = true;
       }
-      ws.send(`BUZZ ${answer.trim()}`);
-      DOM.buzzer.disabled = true;
-      player.locked = true;
-    }
-    // If cancelled or blank, do nothing
+      // If cancelled or blank, do nothing
+    });
     return;
   }
 
@@ -109,6 +110,71 @@ DOM.buzzer.onclick = () => {
   DOM.buzzer.disabled = true;
   player.locked = true;
 };
+
+/**
+ * Show a modal dialog for short answer input
+ * @param {(answer: string|null) => void} callback
+ */
+function showShortAnswerDialog(callback) {
+  // Remove any existing dialog
+  const existing = document.getElementById("short-answer-dialog");
+  if (existing) existing.remove();
+
+  // Overlay
+  const overlay = document.createElement("div");
+  overlay.id = "short-answer-dialog";
+  overlay.className = "short-answer-overlay";
+
+  // Dialog box
+  const dialog = document.createElement("div");
+  dialog.className = "short-answer-dialog";
+
+  const label = document.createElement("label");
+  label.textContent = "Type your answer:";
+  label.className = "short-answer-label";
+  dialog.appendChild(label);
+
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "short-answer-input";
+  dialog.appendChild(input);
+
+  const btnRow = document.createElement("div");
+  btnRow.className = "short-answer-btn-row";
+
+  const okBtn = document.createElement("button");
+  okBtn.textContent = "Submit";
+  okBtn.className = "short-answer-ok";
+  okBtn.onclick = () => {
+    overlay.remove();
+    callback(input.value);
+  };
+
+  const cancelBtn = document.createElement("button");
+  cancelBtn.textContent = "Cancel";
+  cancelBtn.className = "short-answer-cancel";
+  cancelBtn.onclick = () => {
+    overlay.remove();
+    callback(null);
+  };
+
+  btnRow.appendChild(okBtn);
+  btnRow.appendChild(cancelBtn);
+  dialog.appendChild(btnRow);
+
+  // Allow Enter to submit, Escape to cancel
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      okBtn.click();
+    } else if (e.key === "Escape") {
+      cancelBtn.click();
+    }
+  });
+
+  overlay.appendChild(dialog);
+  document.body.appendChild(overlay);
+  input.focus();
+}
 
 /** Show connection status messages */
 function showConnectionStatus(status, message) {

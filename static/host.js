@@ -318,6 +318,11 @@ function connectWebSocket() {
         updatePlayerDisplay();
         break;
       }
+      case "QUESTION_TYPE":
+        if (DOM.questionTypeSelect && DOM.questionTypeSelect.value !== (message.data || "pure-buzz")) {
+          DOM.questionTypeSelect.value = message.data || "pure-buzz";
+        }
+        break;
     }
   };
 }
