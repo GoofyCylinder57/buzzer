@@ -18,10 +18,19 @@
 
 <body>
   <h1>Host Controls</h1>
-  
+
+  <div id="questionTypeBlock">
+    <label for="questionType">Question Type:</label>
+    <select id="questionType">
+      <option value="pure-buzz">Pure Buzz</option>
+      <option value="multiple-choice">Multiple Choice</option>
+      <option value="short-answer">Short Answer</option>
+    </select>
+  </div>
+
   <section id="playersBlock">
     <h2>Players</h2>
-    
+
     <!-- Bulk Actions Toolbar -->
     <div id="bulkActionsToolbar">
       <div class="bulk-selection">
@@ -31,7 +40,7 @@
           Select All
         </label>
       </div>
-      
+
       <div class="bulk-actions">
         <button id="lockSelected" class="bulk-action-btn" disabled>
           Lock Selected (<span id="selectedCount">0</span>)
@@ -41,7 +50,7 @@
         </button>
       </div>
     </div>
-    
+
     <ul id="players"></ul>
   </section>
 </body>

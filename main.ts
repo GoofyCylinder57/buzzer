@@ -5,19 +5,25 @@ const players = new Map<WebSocket, Player>();
 // Set to store connected host WebSockets
 const hosts = new Set<WebSocket>();
 
+const buzzOrder: number[] = []; // Array of player IDs in buzz order
+
 // Player class to represent each player
 let prevId = 0;
 type Player = {
   name: string,
   id: number,
   locked: boolean,
+  answer?: string,
+  rank?: number,
 };
 
 function Player(name: string): Player {
   return {
     name,
     id: prevId++,
-    locked: false,
+    locked: true, // Players are locked by default
+    answer: undefined,
+    rank: undefined,
   };
 }
 
@@ -48,10 +54,21 @@ function broadcastHost(message: string) {
 
 // Send the current player list to all clients and hosts
 function updatePlayerList() {
-  const plrs = Array.from(players.values()).map(plr => `${plr.id} ${plr.locked ? "T" : "F"} ${plr.name}`);
-  const data = `PLU ${JSON.stringify(plrs)}`;
-  broadcastHost(data);
-  broadcast(data);
+  const plrs = Array.from(players.values());
+  if (plrs.every(player => !player.locked)) {
+    buzzOrder.length = 0;
+    for (const player of plrs) {
+      player.answer = undefined;
+      player.rank = undefined;
+    }
+  }
+  const data = {
+    players: plrs,
+    buzzOrder,
+  };
+  const msg = `PLU ${JSON.stringify(data)}`;
+  broadcastHost(msg);
+  broadcast(msg);
 }
 
 // Handle a new WebSocket connection (either player or host)
@@ -96,7 +113,13 @@ function handleWS(socket: WebSocket) {
         const player = players.get(socket);
         if (player) {
           player.locked = true;
-          broadcastHost(`BUZZ ${player.id}`);
+          // Only add to buzzOrder if not already present
+          if (!buzzOrder.includes(player.id)) {
+            buzzOrder.push(player.id);
+            player.answer = message.data || "BUZZ";
+            player.rank = buzzOrder.length;
+          }
+          broadcastHost(`BUZZ ${player.id} ${message.data}`);
           updatePlayerList();
         }
         break;
@@ -113,6 +136,7 @@ function handleWS(socket: WebSocket) {
             ?.[0];
           if (plr_sock) plr_sock.send('UNLOCK');
         });
+
         updatePlayerList();
         break;
       }
@@ -128,6 +152,20 @@ function handleWS(socket: WebSocket) {
             ?.[0];
           if (plr_sock) plr_sock.send(`LOCK`);
         });
+        updatePlayerList();
+        break;
+      }
+      case "QUESTION_TYPE": {
+        broadcast(`QUESTION_TYPE ${message.data}`);
+        break;
+      }
+      case "CLEAR_RANKINGS": {
+        // Clear the buzz order and reset player answers and ranks
+        buzzOrder.length = 0;
+        for (const player of players.values()) {
+          player.answer = undefined;
+          player.rank = undefined;
+        }
         updatePlayerList();
         break;
       }

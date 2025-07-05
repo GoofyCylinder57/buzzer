@@ -68,6 +68,14 @@
   border: 1em solid var(--color-buzzer-border);
 }
 
+#buzzer-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* Ensures the wrapper doesn't affect layout */
+  width: 100%;
+}
+
 /* UUID Display */
 #info-wrapper {
   position: absolute;
@@ -81,4 +89,74 @@
 body {
   background: var(--color-background);
   color: var(--color-text);
+}
+
+/* Multiple Choice Buzzer Buttons */
+.multiple-choice-btn {
+  margin: 0.5em;
+  padding: 1em 2em;
+  font-size: 1.5em;
+  border-radius: 0.5em;
+  border: 2px solid var(--color-buzzer-border, #333);
+  color: #fff;
+  font-weight: bold;
+  cursor: pointer;
+  transition: filter 0.2s, box-shadow 0.2s;
+}
+
+.multiple-choice-btn:disabled {
+  background: var(--color-buzzer-disabled, #888);
+  border-color: var(--color-buzzer-border-disabled, #666);
+  filter: blur(2px);
+  cursor: not-allowed;
+}
+
+.multiple-choice-btn.choice-1 { background: #1976d2; } /* Blue */
+.multiple-choice-btn.choice-2 { background: #388e3c; } /* Green */
+.multiple-choice-btn.choice-3 { background: #fbc02d; color: #222; } /* Yellow */
+.multiple-choice-btn.choice-4 { background: #d32f2f; } /* Red */
+.multiple-choice-btn.choice-5 { background: #7b1fa2; } /* Purple */
+.multiple-choice-btn.choice-6 { background: #ff9800; color: #222; } /* Orange */
+
+.multiple-choice-btn:not(:disabled):hover {
+  filter: brightness(1.15) drop-shadow(0 0 10px #000);
+  box-shadow: 0 0 10px 2px #000;
+}
+
+#connections {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 100%;
+}
+
+#connections li {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  gap: 0.2em;
+  box-sizing: border-box;
+  min-height: 2.2em;
+  padding: 0.2em 0;
+}
+
+.buzz-indicator {
+  position: absolute;
+  left: 0.5em;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--color-warning);
+  color: var(--color-white);
+  padding: 0.25em 0.5em;
+  border-radius: 50%;
+  font-size: 0.8em;
+  font-weight: bold;
+  min-width: 1.5em;
+  text-align: center;
+  display: inline-block;
+  margin-right: 0;
 }

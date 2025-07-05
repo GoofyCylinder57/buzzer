@@ -51,6 +51,8 @@ const player = {
   locked: false,
 };
 
+let currentQuestionType = "pure-buzz"; // Track the current question type
+
 let reconnectAttempts = 0;
 const maxReconnectAttempts = 10;
 
@@ -79,6 +81,24 @@ DOM.buzzer.onclick = () => {
   if (!ws || ws.readyState !== WebSocket.OPEN) return;
   const checked = DOM.info.audio.check.checked;
   const enabled = !player.disabled;
+
+  // Detect if we're in short-answer mode
+  const isShortAnswer = currentQuestionType === "short-answer";
+
+  if (isShortAnswer) {
+    const answer = prompt("Type your answer:");
+    if (answer && answer.trim()) {
+      if (checked && enabled) {
+        DOM.info.audio.el.currentTime = 0;
+        DOM.info.audio.el.play();
+      }
+      ws.send(`BUZZ ${answer.trim()}`);
+      DOM.buzzer.disabled = true;
+      player.locked = true;
+    }
+    // If cancelled or blank, do nothing
+    return;
+  }
 
   if (checked && enabled) {
     DOM.info.audio.el.currentTime = 0;
@@ -164,35 +184,56 @@ function connectWebSocket() {
   };
 
   /** Handle messages from the server */
-  ws.onmessage = (/**@type{MessageEvent<string>}*/event) => {
-    const message = {
-      type: event.data.split(" ")[0],
-      data: event.data.split(" ").slice(1).join(" "),
-    };
-    console.info(message);
-
-    switch (message.type) {
-      case "PLU":
+  ws.onmessage = (/** @type{MessageEvent<string>} */event) => {
+    const [type, ...rest] = event.data.split(" ");
+    const data = rest.join(" ");
+    switch (type) {
+      case "PLU": {
         DOM.connections.innerHTML = ``;
-        JSON.parse(message.data).forEach((/**@type{string}*/player) => {
-          const name = player.split(" ").slice(2).join(" ");
+        const { players } = JSON.parse(data);
+
+        players.forEach((player) => {
           const li = document.createElement("li");
-          li.textContent = name;
+
+          // Rank emblem (fixed width for alignment)
+          const rankSpan = document.createElement("span");
+          rankSpan.className = player.rank ? "buzz-indicator" : "rank-span";
+          if (player.rank) {
+            rankSpan.textContent = `#${player.rank}`;
+          }
+          li.appendChild(rankSpan);
+
+          // Player name (centered)
+          const nameSpan = document.createElement("span");
+          nameSpan.className = "player-name-span";
+          nameSpan.textContent = player.name;
+          li.appendChild(nameSpan);
+
           DOM.connections.appendChild(li);
         });
         break;
+      }
       case "UNLOCK":
         DOM.buzzer.disabled = false;
+        document.querySelectorAll(".multiple-choice-btn").forEach(btn => {
+          btn.disabled = false;
+        });
         player.locked = false;
         break;
       case "LOCK":
         DOM.buzzer.disabled = true;
+        document.querySelectorAll(".multiple-choice-btn").forEach(btn => {
+          btn.disabled = true;
+        });
         player.locked = true;
         break;
       case "ACK":
         // Show player UID
-        DOM.info.uid.innerText = message.data;
-        player.id = message.data;
+        DOM.info.uid.innerText = data;
+        player.id = data;
+        break;
+      case "QUESTION_TYPE":
+        swapQuestionType(data || "pure-buzz");
         break;
     }
   };
@@ -222,6 +263,55 @@ function attemptReconnect() {
       connectWebSocket(); // TODO: #8 Change to a reconnect that keeps id
     }
   }, reconnectDelay);
+}
+
+/**
+ * Swap the question type UI for the player.
+ * @param {string} type - The question type (e.g., 'multiple-choice', 'short-answer', 'pure-buzz' or 'multiple-choice n')
+ */
+function swapQuestionType(type) {
+  currentQuestionType = type.split(" ")[0];
+  const buzzerWrapper = document.getElementById("buzzer-wrapper");
+  if (!buzzerWrapper) return;
+  buzzerWrapper.innerHTML = "";
+
+  let [qType, nChoices] = type.split(" ");
+  nChoices = parseInt(nChoices);
+
+  if (qType === "multiple-choice" && nChoices && nChoices >= 2 && nChoices <= 6) {
+    for (let i = 1; i <= nChoices; i++) {
+      const btn = document.createElement("button");
+      btn.textContent = String.fromCharCode(64 + i); // A, B, C, ...
+      btn.className = `multiple-choice-btn choice-${i}`;
+      btn.disabled = player.locked;
+
+      btn.onclick = () => {
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        const checked = DOM.info.audio.check.checked;
+        const enabled = !player.disabled;
+
+        if (checked && enabled) {
+          DOM.info.audio.el.currentTime = 0;
+          DOM.info.audio.el.play();
+        }
+
+        ws.send(`BUZZ ${String.fromCharCode(64 + i)}`);
+        Array.from(buzzerWrapper.children).forEach(b => b.disabled = true);
+        player.locked = true;
+      };
+
+      buzzerWrapper.appendChild(btn);
+    }
+  } else {
+    const btn = document.createElement("button");
+    btn.id = "buzzer";
+    btn.textContent = "BUZZ!";
+    btn.disabled = player.locked;
+    btn.onclick = DOM.buzzer.onclick;
+    buzzerWrapper.appendChild(btn);
+
+    DOM.buzzer = btn; // Update reference to new buzzer button
+  }
 }
 
 // Handle page visibility changes to reconnect when tab becomes active
